@@ -55,7 +55,7 @@ export default function AlertScreen({ searchQuery = '' }) {
   const isDark = theme?.dark ?? false;
 
   const [alerts, setAlerts] = useState([]);
-  const [city, setCity] = useState('Detecting location...');
+  const [villageName, setVillageName] = useState('Detecting location...');
   const [coords, setCoords] = useState(null);
   const [weatherData, setWeatherData] = useState(null);
   const [loadingWeather, setLoadingWeather] = useState(true);
@@ -89,7 +89,7 @@ export default function AlertScreen({ searchQuery = '' }) {
         const { status } = await Location.requestForegroundPermissionsAsync();
         let currentLat = 17.3850;
         let currentLon = 78.4867;
-        let locationName = 'Local Region';
+        let detectedVillage = 'Local Village / Area';
 
         if (status === 'granted') {
           const loc = await Location.getCurrentPositionAsync({});
@@ -102,18 +102,21 @@ export default function AlertScreen({ searchQuery = '' }) {
           });
 
           if (address.length > 0) {
-            locationName = address[0].city || address[0].region || address[0].district || 'Local Region';
+            const addr = address[0];
+            const village = addr.village || addr.subregion || addr.name || addr.district || addr.city || 'Detected Location';
+            const region = addr.city || addr.region || '';
+            detectedVillage = region && region !== village ? `${village}, ${region}` : village;
           }
         }
 
         if (isMounted) {
-          setCity(locationName);
+          setVillageName(detectedVillage);
           setCoords({ lat: currentLat, lon: currentLon });
         }
 
-        // Fetch Live Weather from Open-Meteo (No API key needed)
+        // Fetch Live Detailed Weather from Open-Meteo (No API key required)
         const res = await fetch(
-          `https://api.open-meteo.com/v1/forecast?latitude=${currentLat}&longitude=${currentLon}&current_weather=true&hourly=relative_humidity_2m`
+          `https://api.open-meteo.com/v1/forecast?latitude=${currentLat}&longitude=${currentLon}&current_weather=true&hourly=relative_humidity_2m,surface_pressure,precipitation`
         );
         const data = await res.json();
 
@@ -121,6 +124,8 @@ export default function AlertScreen({ searchQuery = '' }) {
           const currentWeather = data.current_weather;
           const weatherInfo = getWeatherInfo(currentWeather.weathercode);
           const humidity = data.hourly?.relative_humidity_2m?.[0] || 65;
+          const pressure = Math.round(data.hourly?.surface_pressure?.[0] || 1012);
+          const precip = data.hourly?.precipitation?.[0] || 0.0;
 
           setWeatherData({
             temp: Math.round(currentWeather.temperature),
@@ -130,9 +135,11 @@ export default function AlertScreen({ searchQuery = '' }) {
             color: weatherInfo.color,
             isSevere: weatherInfo.isSevere || currentWeather.windspeed > 40,
             humidity: humidity,
+            pressure: pressure,
+            precipitation: precip,
           });
 
-          // Filter Alerts: Only add a weather hazard alert IF there is a real severe condition detected
+          // Only push a hazard warning IF real severe weather is detected
           if (weatherInfo.isSevere || currentWeather.windspeed > 40) {
             setAlerts((prev) => {
               const hasSevere = prev.some((a) => a.id === 'weather-severe');
@@ -143,8 +150,8 @@ export default function AlertScreen({ searchQuery = '' }) {
                   title: `Severe Weather Warning - ${weatherInfo.label}`,
                   severity: currentWeather.windspeed > 50 ? 'Critical' : 'Warning',
                   icon: 'warning',
-                  location: locationName,
-                  message: `Live severe weather detected: ${weatherInfo.label} with winds of ${Math.round(currentWeather.windspeed)} km/h. Exercise caution and stay indoors if necessary.`,
+                  location: detectedVillage,
+                  message: `Live severe weather in ${detectedVillage}: ${weatherInfo.label} with wind speeds of ${Math.round(currentWeather.windspeed)} km/h. Take safety precautions immediately.`,
                   timestamp: 'Live Active Alert',
                 },
                 ...prev,
@@ -153,7 +160,6 @@ export default function AlertScreen({ searchQuery = '' }) {
           }
         }
       } catch (err) {
-        // Fallback default weather
         if (isMounted) {
           setWeatherData({
             temp: 28,
@@ -163,6 +169,8 @@ export default function AlertScreen({ searchQuery = '' }) {
             color: '#F59E0B',
             isSevere: false,
             humidity: 60,
+            pressure: 1013,
+            precipitation: 0.0,
           });
         }
       } finally {
@@ -216,6 +224,7 @@ export default function AlertScreen({ searchQuery = '' }) {
         subtext: '#94A3B8',
         allClearBg: '#064E3B',
         allClearBorder: '#059669',
+        reportBoxBg: '#0B182B',
       }
     : {
         bg: '#F8FAFC',
@@ -225,6 +234,7 @@ export default function AlertScreen({ searchQuery = '' }) {
         subtext: '#64748B',
         allClearBg: '#ECFDF5',
         allClearBorder: '#10B981',
+        reportBoxBg: '#F8FAFC',
       };
 
   return (
@@ -238,68 +248,92 @@ export default function AlertScreen({ searchQuery = '' }) {
             </View>
             <View style={styles.heroTextWrap}>
               <Text style={styles.heroTitle}>Emergency Hazards & Weather</Text>
-              <Text style={styles.heroSubtitle}>Live local weather report and active hazard advisories for your area.</Text>
+              <Text style={styles.heroSubtitle}>Live local weather reports and emergency hazard alerts based on your real location.</Text>
             </View>
           </View>
         </LinearGradient>
 
-        {/* Real-time Weather Report Card */}
+        {/* Real Location & Live Weather Report Card */}
         <View style={[styles.weatherCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
           <View style={styles.weatherCardHeader}>
             <View style={styles.locationHeaderRow}>
-              <Ionicons name="navigate-circle-outline" size={22} color="#2563EB" style={{ marginRight: 6 }} />
+              <Ionicons name="navigate-circle-outline" size={24} color="#2563EB" style={{ marginRight: 8 }} />
               <View>
                 <Text style={[styles.locationEyebrow, { color: colors.subtext }]}>DETECTED LOCATION</Text>
-                <Text style={[styles.locationTitle, { color: colors.text }]}>{city} {coords ? `(${coords.lat.toFixed(2)}°, ${coords.lon.toFixed(2)}°)` : ''}</Text>
+                <Text style={[styles.locationTitle, { color: colors.text }]}>{villageName}</Text>
+                {coords && (
+                  <Text style={[styles.coordsText, { color: colors.subtext }]}>
+                    GPS: {coords.lat.toFixed(4)}° N, {coords.lon.toFixed(4)}° E
+                  </Text>
+                )}
               </View>
             </View>
+
             <View style={styles.liveTag}>
               <View style={styles.liveDot} />
-              <Text style={styles.liveTagText}>LIVE WEATHER</Text>
+              <Text style={styles.liveTagText}>LIVE REPORT</Text>
             </View>
           </View>
 
           {loadingWeather ? (
             <View style={styles.weatherLoadingBox}>
               <ActivityIndicator size="small" color="#2563EB" />
-              <Text style={[styles.weatherLoadingText, { color: colors.subtext }]}>Fetching local weather report...</Text>
+              <Text style={[styles.weatherLoadingText, { color: colors.subtext }]}>Fetching local weather report for {villageName}...</Text>
             </View>
           ) : weatherData ? (
-            <View style={styles.weatherBody}>
-              <View style={styles.tempCol}>
-                <Text style={[styles.tempVal, { color: colors.text }]}>{weatherData.temp}°C</Text>
-                <Text style={[styles.conditionText, { color: weatherData.color }]}>{weatherData.condition}</Text>
-              </View>
-
-              <View style={styles.weatherIconWrap}>
-                <Ionicons name={weatherData.icon} size={48} color={weatherData.color} />
-              </View>
-
-              <View style={styles.weatherMetricsCol}>
-                <View style={styles.metricRow}>
-                  <Ionicons name="navigate-outline" size={14} color={colors.subtext} style={{ marginRight: 4 }} />
-                  <Text style={[styles.metricText, { color: colors.subtext }]}>Wind: {weatherData.windSpeed} km/h</Text>
+            <View style={styles.weatherBodyWrap}>
+              <View style={styles.weatherBodyTop}>
+                <View style={styles.tempCol}>
+                  <Text style={[styles.tempVal, { color: colors.text }]}>{weatherData.temp}°C</Text>
+                  <Text style={[styles.conditionText, { color: weatherData.color }]}>{weatherData.condition}</Text>
                 </View>
-                <View style={styles.metricRow}>
-                  <Ionicons name="water-outline" size={14} color={colors.subtext} style={{ marginRight: 4 }} />
-                  <Text style={[styles.metricText, { color: colors.subtext }]}>Humidity: {weatherData.humidity}%</Text>
+
+                <View style={styles.weatherIconWrap}>
+                  <Ionicons name={weatherData.icon} size={52} color={weatherData.color} />
+                </View>
+              </View>
+
+              {/* Comprehensive Live Weather Report Grid */}
+              <View style={styles.weatherReportGrid}>
+                <View style={[styles.reportMetricBox, { backgroundColor: colors.reportBoxBg, borderColor: colors.border }]}>
+                  <Ionicons name="navigate-outline" size={16} color="#2563EB" style={{ marginBottom: 4 }} />
+                  <Text style={[styles.reportMetricVal, { color: colors.text }]}>{weatherData.windSpeed} km/h</Text>
+                  <Text style={[styles.reportMetricLabel, { color: colors.subtext }]}>Wind Speed</Text>
+                </View>
+
+                <View style={[styles.reportMetricBox, { backgroundColor: colors.reportBoxBg, borderColor: colors.border }]}>
+                  <Ionicons name="water-outline" size={16} color="#0EA5E9" style={{ marginBottom: 4 }} />
+                  <Text style={[styles.reportMetricVal, { color: colors.text }]}>{weatherData.humidity}%</Text>
+                  <Text style={[styles.reportMetricLabel, { color: colors.subtext }]}>Humidity</Text>
+                </View>
+
+                <View style={[styles.reportMetricBox, { backgroundColor: colors.reportBoxBg, borderColor: colors.border }]}>
+                  <Ionicons name="speedometer-outline" size={16} color="#10B981" style={{ marginBottom: 4 }} />
+                  <Text style={[styles.reportMetricVal, { color: colors.text }]}>{weatherData.pressure} hPa</Text>
+                  <Text style={[styles.reportMetricLabel, { color: colors.subtext }]}>Pressure</Text>
+                </View>
+
+                <View style={[styles.reportMetricBox, { backgroundColor: colors.reportBoxBg, borderColor: colors.border }]}>
+                  <Ionicons name="rainy-outline" size={16} color="#7C3AED" style={{ marginBottom: 4 }} />
+                  <Text style={[styles.reportMetricVal, { color: colors.text }]}>{weatherData.precipitation} mm</Text>
+                  <Text style={[styles.reportMetricLabel, { color: colors.subtext }]}>Precipitation</Text>
                 </View>
               </View>
             </View>
           ) : null}
         </View>
 
-        {/* Alert Cards or All Clear Status Card */}
+        {/* Alert Cards OR All Clear Status */}
         {visibleAlerts.length === 0 ? (
           <View style={[styles.allClearCard, { backgroundColor: colors.allClearBg, borderColor: colors.allClearBorder }]}>
             <View style={styles.allClearHeader}>
-              <Ionicons name="checkmark-circle" size={32} color="#10B981" style={{ marginRight: 10 }} />
+              <Ionicons name="checkmark-circle" size={34} color="#10B981" style={{ marginRight: 12 }} />
               <View style={{ flex: 1 }}>
                 <Text style={[styles.allClearTitle, { color: isDark ? '#A7F3D0' : '#065F46' }]}>
-                  All Clear — No Active Emergency Hazards
+                  All Clear — No Active Hazards
                 </Text>
                 <Text style={[styles.allClearSub, { color: isDark ? '#D1FAE5' : '#047857' }]}>
-                  Your location ({city}) is currently calm. No active severe weather or hazard advisories are reported at this time.
+                  Detected Location: <Text style={{ fontWeight: '800' }}>{villageName}</Text>. No severe weather or active emergency alerts are currently reported for your area.
                 </Text>
               </View>
             </View>
@@ -335,7 +369,7 @@ export default function AlertScreen({ searchQuery = '' }) {
                   <View style={styles.cardFooter}>
                     <View style={styles.metaItem}>
                       <Ionicons name="location-outline" size={14} color={colors.subtext} style={{ marginRight: 4 }} />
-                      <Text style={[styles.metaText, { color: colors.subtext }]}>{alert.location || city}</Text>
+                      <Text style={[styles.metaText, { color: colors.subtext }]}>{alert.location || villageName}</Text>
                     </View>
 
                     <Text style={[styles.timestampText, { color: colors.subtext }]}>{alert.timestamp || 'Active Alert'}</Text>
@@ -402,7 +436,7 @@ const styles = StyleSheet.create({
   weatherCard: {
     borderRadius: 20,
     borderWidth: 1,
-    padding: 16,
+    padding: 18,
     marginBottom: 16,
     shadowColor: '#000',
     shadowOpacity: 0.04,
@@ -414,31 +448,36 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 12,
-    paddingBottom: 8,
+    marginBottom: 14,
+    paddingBottom: 10,
     borderBottomWidth: 1,
     borderBottomColor: 'rgba(148, 163, 184, 0.15)',
   },
   locationHeaderRow: {
     flexDirection: 'row',
     alignItems: 'center',
+    flex: 1,
   },
   locationEyebrow: {
     fontSize: 10,
     fontWeight: '900',
     letterSpacing: 0.6,
-    marginBottom: 1,
+    marginBottom: 2,
   },
   locationTitle: {
-    fontSize: 15,
-    fontWeight: '800',
+    fontSize: 16,
+    fontWeight: '900',
+  },
+  coordsText: {
+    fontSize: 11,
+    marginTop: 1,
   },
   liveTag: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: 'rgba(37, 99, 235, 0.1)',
-    paddingHorizontal: 8,
-    paddingVertical: 3,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
     borderRadius: 999,
     gap: 6,
   },
@@ -458,14 +497,17 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 16,
+    paddingVertical: 20,
     gap: 8,
   },
   weatherLoadingText: {
     fontSize: 13,
     fontWeight: '600',
   },
-  weatherBody: {
+  weatherBodyWrap: {
+    gap: 16,
+  },
+  weatherBodyTop: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
@@ -474,12 +516,12 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   tempVal: {
-    fontSize: 34,
+    fontSize: 38,
     fontWeight: '900',
-    lineHeight: 40,
+    lineHeight: 44,
   },
   conditionText: {
-    fontSize: 14,
+    fontSize: 15,
     fontWeight: '800',
     marginTop: 2,
   },
@@ -488,16 +530,25 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingHorizontal: 16,
   },
-  weatherMetricsCol: {
-    gap: 4,
-  },
-  metricRow: {
+  weatherReportGrid: {
     flexDirection: 'row',
+    gap: 10,
+  },
+  reportMetricBox: {
+    flex: 1,
+    borderRadius: 14,
+    borderWidth: 1,
+    padding: 10,
     alignItems: 'center',
   },
-  metricText: {
-    fontSize: 12,
-    fontWeight: '600',
+  reportMetricVal: {
+    fontSize: 14,
+    fontWeight: '900',
+    marginBottom: 2,
+  },
+  reportMetricLabel: {
+    fontSize: 10,
+    fontWeight: '700',
   },
   allClearCard: {
     borderRadius: 18,

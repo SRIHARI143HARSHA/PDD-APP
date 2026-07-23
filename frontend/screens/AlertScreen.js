@@ -80,36 +80,35 @@ export default function AlertScreen({ searchQuery = '' }) {
         let currentLon = 80.0158;
         let detectedVillage = 'Local Area';
 
-        // 1. Get Device Location
-        if (typeof navigator !== 'undefined' && navigator.geolocation) {
-          await new Promise((resolve) => {
-            navigator.geolocation.getCurrentPosition(
-              (pos) => {
-                currentLat = pos.coords.latitude;
-                currentLon = pos.coords.longitude;
-                resolve();
-              },
-              async () => {
-                try {
-                  const { status } = await Location.requestForegroundPermissionsAsync();
-                  if (status === 'granted') {
-                    const loc = await Location.getCurrentPositionAsync({});
-                    currentLat = loc.coords.latitude;
-                    currentLon = loc.coords.longitude;
-                  }
-                } catch (e) {}
-                resolve();
-              },
-              { timeout: 5000 }
-            );
-          });
-        }
+        // 1. Native Mobile GPS Permission and Geolocation First
+        try {
+          const { status } = await Location.requestForegroundPermissionsAsync();
+          if (status === 'granted') {
+            const loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
+            if (loc && loc.coords) {
+              currentLat = loc.coords.latitude;
+              currentLon = loc.coords.longitude;
+            }
+          } else if (typeof navigator !== 'undefined' && navigator.geolocation) {
+            await new Promise((resolve) => {
+              navigator.geolocation.getCurrentPosition(
+                (pos) => {
+                  currentLat = pos.coords.latitude;
+                  currentLon = pos.coords.longitude;
+                  resolve();
+                },
+                () => resolve(),
+                { timeout: 5000 }
+              );
+            });
+          }
+        } catch (e) {}
 
         if (isMounted) {
           setCoords({ lat: currentLat, lon: currentLon });
         }
 
-        // 2. Geocode Village Name via OpenStreetMap Nominatim
+        // 2. Reverse Geocode Real Village / Area Name via OpenStreetMap Nominatim
         try {
           const geoRes = await fetch(
             `https://nominatim.openstreetmap.org/reverse?format=json&lat=${currentLat}&lon=${currentLon}`
@@ -340,27 +339,27 @@ export default function AlertScreen({ searchQuery = '' }) {
               {/* Responsive 4-Metric Weather Report Grid */}
               <View style={[styles.weatherReportGrid, isMobile && styles.weatherReportGridMobile]}>
                 <View style={[styles.reportMetricBox, isMobile && styles.reportMetricBoxMobile, { backgroundColor: colors.reportBoxBg, borderColor: colors.border }]}>
-                  <Ionicons name="navigate-outline" size={18} color="#2563EB" style={{ marginBottom: 4 }} />
-                  <Text style={[styles.reportMetricVal, { color: colors.text }]}>{weatherData.windSpeed} km/h</Text>
-                  <Text style={[styles.reportMetricLabel, { color: colors.subtext }]}>Wind Speed</Text>
+                  <Ionicons name="navigate-outline" size={16} color="#2563EB" style={{ marginBottom: 4 }} />
+                  <Text style={[styles.reportMetricVal, { color: colors.text }]} numberOfLines={1}>{weatherData.windSpeed} km/h</Text>
+                  <Text style={[styles.reportMetricLabel, { color: colors.subtext }]} numberOfLines={1}>Wind Speed</Text>
                 </View>
 
                 <View style={[styles.reportMetricBox, isMobile && styles.reportMetricBoxMobile, { backgroundColor: colors.reportBoxBg, borderColor: colors.border }]}>
-                  <Ionicons name="water-outline" size={18} color="#0EA5E9" style={{ marginBottom: 4 }} />
-                  <Text style={[styles.reportMetricVal, { color: colors.text }]}>{weatherData.humidity}%</Text>
-                  <Text style={[styles.reportMetricLabel, { color: colors.subtext }]}>Humidity</Text>
+                  <Ionicons name="water-outline" size={16} color="#0EA5E9" style={{ marginBottom: 4 }} />
+                  <Text style={[styles.reportMetricVal, { color: colors.text }]} numberOfLines={1}>{weatherData.humidity}%</Text>
+                  <Text style={[styles.reportMetricLabel, { color: colors.subtext }]} numberOfLines={1}>Humidity</Text>
                 </View>
 
                 <View style={[styles.reportMetricBox, isMobile && styles.reportMetricBoxMobile, { backgroundColor: colors.reportBoxBg, borderColor: colors.border }]}>
-                  <Ionicons name="speedometer-outline" size={18} color="#10B981" style={{ marginBottom: 4 }} />
-                  <Text style={[styles.reportMetricVal, { color: colors.text }]}>{weatherData.pressure} hPa</Text>
-                  <Text style={[styles.reportMetricLabel, { color: colors.subtext }]}>Pressure</Text>
+                  <Ionicons name="speedometer-outline" size={16} color="#10B981" style={{ marginBottom: 4 }} />
+                  <Text style={[styles.reportMetricVal, { color: colors.text }]} numberOfLines={1}>{weatherData.pressure} hPa</Text>
+                  <Text style={[styles.reportMetricLabel, { color: colors.subtext }]} numberOfLines={1}>Pressure</Text>
                 </View>
 
                 <View style={[styles.reportMetricBox, isMobile && styles.reportMetricBoxMobile, { backgroundColor: colors.reportBoxBg, borderColor: colors.border }]}>
-                  <Ionicons name="rainy-outline" size={18} color="#7C3AED" style={{ marginBottom: 4 }} />
-                  <Text style={[styles.reportMetricVal, { color: colors.text }]}>{weatherData.precipitation} mm</Text>
-                  <Text style={[styles.reportMetricLabel, { color: colors.subtext }]}>Precipitation</Text>
+                  <Ionicons name="rainy-outline" size={16} color="#7C3AED" style={{ marginBottom: 4 }} />
+                  <Text style={[styles.reportMetricVal, { color: colors.text }]} numberOfLines={1}>{weatherData.precipitation} mm</Text>
+                  <Text style={[styles.reportMetricLabel, { color: colors.subtext }]} numberOfLines={1}>Precipitation</Text>
                 </View>
               </View>
             </View>
@@ -381,7 +380,7 @@ export default function AlertScreen({ searchQuery = '' }) {
             </View>
           </View>
 
-          {/* Hazard Cards with Proper Mobile Layout */}
+          {/* Hazard Cards with Stacked Mobile Layout */}
           {visibleAlerts.map((alert) => {
             const sevStyle = getSeverityStyle(alert.severity, isSevereActive);
             return (
@@ -394,8 +393,10 @@ export default function AlertScreen({ searchQuery = '' }) {
               >
                 <View style={styles.cardTopRow}>
                   <View style={styles.titleWrap}>
-                    <Ionicons name={alert.icon || 'warning'} size={20} color={sevStyle.text} style={{ marginRight: 8 }} />
-                    <Text style={[styles.alertTitle, { color: colors.text }]}>{alert.title}</Text>
+                    <Ionicons name={alert.icon || 'warning'} size={18} color={sevStyle.text} style={{ marginRight: 6 }} />
+                    <Text style={[styles.alertTitle, { color: colors.text }]} numberOfLines={2}>
+                      {alert.title}
+                    </Text>
                   </View>
                   <View style={[styles.badge, { backgroundColor: sevStyle.badgeBg }]}>
                     <Text style={styles.badgeText}>{isSevereActive ? alert.severity : 'INACTIVE'}</Text>
@@ -404,11 +405,11 @@ export default function AlertScreen({ searchQuery = '' }) {
 
                 <Text style={[styles.alertMessage, { color: colors.text }]}>{alert.message}</Text>
 
-                {/* Mobile Responsive Card Footer */}
-                <View style={styles.cardFooter}>
-                  <View style={styles.metaLocationWrap}>
+                {/* Mobile Responsive Card Footer - Vertical Stacking on Mobile */}
+                <View style={[styles.cardFooter, isMobile && styles.cardFooterMobile]}>
+                  <View style={[styles.metaLocationWrap, isMobile && styles.metaLocationWrapMobile]}>
                     <Ionicons name="location-outline" size={14} color={colors.subtext} style={{ marginRight: 4 }} />
-                    <Text style={[styles.metaLocationText, { color: colors.subtext }]} numberOfLines={1}>
+                    <Text style={[styles.metaLocationText, { color: colors.subtext }]} numberOfLines={1} ellipsisMode="tail">
                       {alert.location || villageName}
                     </Text>
                   </View>
@@ -434,7 +435,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   contentContainer: {
-    padding: 16,
+    padding: 14,
     paddingBottom: 36,
   },
   mainWrapper: {
@@ -444,7 +445,7 @@ const styles = StyleSheet.create({
   },
   heroCard: {
     borderRadius: 20,
-    padding: 20,
+    padding: 18,
     marginBottom: 16,
     shadowColor: '#2563EB',
     shadowOpacity: 0.25,
@@ -457,32 +458,32 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   heroIconWrap: {
-    width: 46,
-    height: 46,
-    borderRadius: 23,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     backgroundColor: 'rgba(255, 255, 255, 0.2)',
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: 14,
+    marginRight: 12,
   },
   heroTextWrap: {
     flex: 1,
   },
   heroTitle: {
-    fontSize: 20,
+    fontSize: 19,
     fontWeight: '900',
     color: '#FFFFFF',
-    marginBottom: 3,
+    marginBottom: 2,
   },
   heroSubtitle: {
-    fontSize: 13,
+    fontSize: 12,
     color: 'rgba(255, 255, 255, 0.95)',
-    lineHeight: 18,
+    lineHeight: 17,
   },
   weatherCard: {
     borderRadius: 20,
     borderWidth: 1,
-    padding: 18,
+    padding: 16,
     marginBottom: 16,
     shadowColor: '#000',
     shadowOpacity: 0.05,
@@ -494,7 +495,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 14,
+    marginBottom: 12,
     paddingBottom: 10,
     borderBottomWidth: 1,
     borderBottomColor: 'rgba(148, 163, 184, 0.15)',
@@ -512,34 +513,35 @@ const styles = StyleSheet.create({
     marginBottom: 2,
   },
   locationTitle: {
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: '900',
-    lineHeight: 20,
+    lineHeight: 19,
   },
   coordsText: {
     fontSize: 11,
-    marginTop: 2,
+    marginTop: 1,
   },
   liveTag: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: 'rgba(37, 99, 235, 0.12)',
-    paddingHorizontal: 10,
-    paddingVertical: 5,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
     borderRadius: 999,
-    gap: 6,
+    gap: 5,
+    flexShrink: 0,
   },
   liveDot: {
-    width: 7,
-    height: 7,
-    borderRadius: 3.5,
+    width: 6,
+    height: 6,
+    borderRadius: 3,
     backgroundColor: '#2563EB',
   },
   liveTagText: {
-    fontSize: 10,
+    fontSize: 9,
     fontWeight: '900',
     color: '#2563EB',
-    letterSpacing: 0.6,
+    letterSpacing: 0.5,
   },
   weatherLoadingBox: {
     flexDirection: 'row',
@@ -553,7 +555,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   weatherBodyWrap: {
-    gap: 16,
+    gap: 14,
   },
   weatherBodyTop: {
     flexDirection: 'row',
@@ -564,23 +566,23 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   tempVal: {
-    fontSize: 40,
+    fontSize: 38,
     fontWeight: '900',
-    lineHeight: 46,
+    lineHeight: 42,
   },
   conditionText: {
-    fontSize: 15,
+    fontSize: 14,
     fontWeight: '800',
     marginTop: 2,
   },
   weatherIconWrap: {
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: 12,
+    paddingHorizontal: 8,
   },
   weatherReportGrid: {
     flexDirection: 'row',
-    gap: 10,
+    gap: 8,
   },
   weatherReportGridMobile: {
     flexWrap: 'wrap',
@@ -589,43 +591,44 @@ const styles = StyleSheet.create({
     flex: 1,
     borderRadius: 14,
     borderWidth: 1,
-    padding: 12,
+    padding: 10,
     alignItems: 'center',
   },
   reportMetricBoxMobile: {
     minWidth: '47%',
+    padding: 8,
   },
   reportMetricVal: {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '900',
     marginBottom: 2,
   },
   reportMetricLabel: {
-    fontSize: 11,
+    fontSize: 10,
     fontWeight: '700',
   },
   alertsList: {
-    gap: 14,
+    gap: 12,
   },
   sectionHeaderRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     flexWrap: 'wrap',
-    gap: 8,
-    marginBottom: 4,
+    gap: 6,
+    marginBottom: 2,
   },
   alertsSectionTitle: {
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: '800',
   },
   statusSummaryBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 10,
-    paddingVertical: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
     borderRadius: 999,
-    gap: 6,
+    gap: 5,
   },
   statusDot: {
     width: 6,
@@ -633,15 +636,15 @@ const styles = StyleSheet.create({
     borderRadius: 3,
   },
   statusSummaryText: {
-    fontSize: 10,
+    fontSize: 9,
     fontWeight: '900',
     letterSpacing: 0.5,
   },
   card: {
-    borderRadius: 18,
+    borderRadius: 16,
     borderWidth: 1,
-    borderLeftWidth: 6,
-    padding: 16,
+    borderLeftWidth: 5,
+    padding: 14,
     shadowColor: '#000',
     shadowOpacity: 0.04,
     shadowRadius: 8,
@@ -650,36 +653,38 @@ const styles = StyleSheet.create({
   },
   cardTopRow: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     justifyContent: 'space-between',
-    marginBottom: 10,
+    marginBottom: 8,
   },
   titleWrap: {
     flexDirection: 'row',
     alignItems: 'center',
     flex: 1,
-    marginRight: 10,
+    marginRight: 8,
   },
   alertTitle: {
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: '800',
     flex: 1,
   },
   badge: {
-    paddingHorizontal: 10,
-    paddingVertical: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
     borderRadius: 999,
+    flexShrink: 0,
+    alignSelf: 'flex-start',
   },
   badgeText: {
     color: '#FFFFFF',
-    fontSize: 11,
+    fontSize: 10,
     fontWeight: '800',
     textTransform: 'uppercase',
   },
   alertMessage: {
     fontSize: 13,
-    lineHeight: 20,
-    marginBottom: 14,
+    lineHeight: 19,
+    marginBottom: 12,
   },
   cardFooter: {
     flexDirection: 'row',
@@ -691,12 +696,20 @@ const styles = StyleSheet.create({
     borderTopColor: 'rgba(148, 163, 184, 0.15)',
     paddingTop: 10,
   },
+  cardFooterMobile: {
+    flexDirection: 'column',
+    alignItems: 'flex-start',
+    gap: 4,
+  },
   metaLocationWrap: {
     flexDirection: 'row',
     alignItems: 'center',
     flexShrink: 1,
     maxWidth: '56%',
     marginRight: 4,
+  },
+  metaLocationWrapMobile: {
+    maxWidth: '100%',
   },
   metaLocationText: {
     fontSize: 11,
@@ -707,12 +720,12 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    maxWidth: '42%',
+    maxWidth: '100%',
   },
   smallStatusDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
+    width: 5,
+    height: 5,
+    borderRadius: 2.5,
   },
   metaStatusText: {
     fontSize: 11,

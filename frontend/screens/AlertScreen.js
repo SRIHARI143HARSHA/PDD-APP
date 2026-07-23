@@ -686,7 +686,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     flexWrap: 'wrap',
-    gap: 8,
+    gap: 6,
     borderTopWidth: 1,
     borderTopColor: 'rgba(148, 163, 184, 0.15)',
     paddingTop: 10,
@@ -695,10 +695,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     flexShrink: 1,
-    marginRight: 8,
+    maxWidth: '56%',
+    marginRight: 4,
   },
   metaLocationText: {
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: '600',
     flexShrink: 1,
   },
@@ -706,6 +707,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
+    maxWidth: '42%',
   },
   smallStatusDot: {
     width: 6,
@@ -713,7 +715,7 @@ const styles = StyleSheet.create({
     borderRadius: 3,
   },
   metaStatusText: {
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: '600',
   },
 });

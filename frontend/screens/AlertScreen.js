@@ -14,8 +14,8 @@ export const defaultAlerts = [
     severity: 'Critical',
     icon: 'water',
     location: 'Coastal & River Basin Regions',
-    message: 'Rapidly rising water levels reported due to persistent heavy rainfall. Move to elevated high ground immediately.',
-    timestamp: 'Active Now • Official Advisory',
+    message: 'Monitored flood zones in low-lying areas. System is on standby for heavy rainfall.',
+    timestamp: 'Monitoring Protocol',
   },
   {
     id: 'sample-2',
@@ -23,8 +23,8 @@ export const defaultAlerts = [
     severity: 'Warning',
     icon: 'pulse',
     location: 'Tectonic Fault Zone',
-    message: 'Minor foreshocks recorded in subterranean plates. Secure heavy furniture and review Drop, Cover, and Hold On procedures.',
-    timestamp: 'Updated 20 mins ago',
+    message: 'Seismic sensors tracking subterranean plate movements. Review Drop, Cover, and Hold On procedures.',
+    timestamp: 'Subterranean Sensor Active',
   },
   {
     id: 'sample-3',
@@ -32,8 +32,8 @@ export const defaultAlerts = [
     severity: 'Advisory',
     icon: 'thunderstorm',
     location: 'Coastal Maritime Belt',
-    message: 'Sustained winds exceeding 45 mph forecasted. Secure outdoor property, loose items, and garden structures.',
-    timestamp: 'Issued Today',
+    message: 'Anemometer tracking coastal wind velocity. Secure loose outdoor structures if wind speeds increase.',
+    timestamp: 'Coastal Wind Station',
   },
 ];
 
@@ -54,11 +54,12 @@ export default function AlertScreen({ searchQuery = '' }) {
   const theme = useContext(ThemeContext);
   const isDark = theme?.dark ?? false;
 
-  const [alerts, setAlerts] = useState([]);
+  const [alerts, setAlerts] = useState(defaultAlerts);
   const [villageName, setVillageName] = useState('Detecting real location...');
   const [coords, setCoords] = useState(null);
   const [weatherData, setWeatherData] = useState(null);
   const [loadingWeather, setLoadingWeather] = useState(true);
+  const [isSevereActive, setIsSevereActive] = useState(false);
 
   const normalizedQuery = searchQuery.trim().toLowerCase();
   const visibleAlerts = normalizedQuery
@@ -77,7 +78,7 @@ export default function AlertScreen({ searchQuery = '' }) {
         let currentLon = 80.0158;
         let detectedVillage = 'Local Area';
 
-        // 1. Try Browser / Device Geolocation
+        // 1. Get Device Location
         if (typeof navigator !== 'undefined' && navigator.geolocation) {
           await new Promise((resolve) => {
             navigator.geolocation.getCurrentPosition(
@@ -106,7 +107,7 @@ export default function AlertScreen({ searchQuery = '' }) {
           setCoords({ lat: currentLat, lon: currentLon });
         }
 
-        // 2. Fetch Real Village/Town Name using OpenStreetMap Nominatim API
+        // 2. Geocode Village Name via OpenStreetMap Nominatim
         try {
           const geoRes = await fetch(
             `https://nominatim.openstreetmap.org/reverse?format=json&lat=${currentLat}&lon=${currentLon}`
@@ -137,7 +138,7 @@ export default function AlertScreen({ searchQuery = '' }) {
           setVillageName(detectedVillage);
         }
 
-        // 3. Fetch Live Real Weather from Open-Meteo
+        // 3. Fetch Live Real-Time Weather for exact current local hour
         const res = await fetch(
           `https://api.open-meteo.com/v1/forecast?latitude=${currentLat}&longitude=${currentLon}&current_weather=true&hourly=relative_humidity_2m,surface_pressure,precipitation`
         );
@@ -146,10 +147,15 @@ export default function AlertScreen({ searchQuery = '' }) {
         if (isMounted && data && data.current_weather) {
           const cw = data.current_weather;
           const weatherInfo = getWeatherInfo(cw.weathercode);
-          const humidity = data.hourly?.relative_humidity_2m?.[0] || 65;
-          const pressure = Math.round(data.hourly?.surface_pressure?.[0] || 1012);
-          const precip = data.hourly?.precipitation?.[0] || 0.0;
-          const isRealSevereIssue = weatherInfo.isSevere || cw.windspeed > 40 || precip > 10.0;
+
+          // Get index for current hour to match real local time
+          const currentHourIndex = new Date().getHours();
+          const humidity = data.hourly?.relative_humidity_2m?.[currentHourIndex] ?? data.hourly?.relative_humidity_2m?.[0] ?? 49;
+          const pressure = Math.round(data.hourly?.surface_pressure?.[currentHourIndex] ?? data.hourly?.surface_pressure?.[0] ?? 1003);
+          const precip = data.hourly?.precipitation?.[currentHourIndex] ?? 0.0;
+          const severeFlag = weatherInfo.isSevere || cw.windspeed > 40 || precip > 10.0;
+
+          setIsSevereActive(severeFlag);
 
           setWeatherData({
             temp: Math.round(cw.temperature),
@@ -157,58 +163,37 @@ export default function AlertScreen({ searchQuery = '' }) {
             condition: weatherInfo.label,
             icon: weatherInfo.icon,
             color: weatherInfo.color,
-            isSevere: isRealSevereIssue,
+            isSevere: severeFlag,
             humidity: humidity,
             pressure: pressure,
             precipitation: precip,
           });
 
-          // 4. Handle Alerts:
-          // IF there is a REAL severe hazard (heavy storm, high winds > 40km/h, or extreme rain > 10mm), mark active alert!
-          // IF weather is normal/calm, keep alerts INACTIVE / ALL CLEAR unless an explicit live Firestore broadcast exists!
-          if (isRealSevereIssue) {
-            setAlerts([
-              {
-                id: 'weather-severe-active',
-                title: `Active Severe Hazard - ${weatherInfo.label}`,
-                severity: cw.windspeed > 50 ? 'Critical' : 'Warning',
-                icon: 'warning',
-                location: detectedVillage,
-                message: `Real-time hazard warning for ${detectedVillage}: ${weatherInfo.label} with winds of ${Math.round(cw.windspeed)} km/h and precipitation of ${precip} mm. Take emergency shelter immediately.`,
-                timestamp: 'Active Now • Real Time Alert',
-              },
-            ]);
-          } else {
-            // Check Firestore for custom real alerts only
-            try {
-              const querySnapshot = await getDocs(collection(db, 'alerts'));
-              const realDocs = [];
-              querySnapshot.forEach((doc) => {
-                const item = doc.data();
-                if (item && item.isRealHazard === true) {
-                  realDocs.push({ id: doc.id, ...item });
-                }
-              });
-              setAlerts(realDocs); // Empty array if no real hazards present
-            } catch (err) {
-              setAlerts([]);
+          // Fetch Firestore custom alerts if available
+          try {
+            const querySnapshot = await getDocs(collection(db, 'alerts'));
+            const customData = [];
+            querySnapshot.forEach((doc) => {
+              customData.push({ id: doc.id, ...doc.data() });
+            });
+            if (customData.length > 0) {
+              setAlerts(customData);
             }
-          }
+          } catch (err) {}
         }
       } catch (err) {
         if (isMounted) {
           setWeatherData({
-            temp: 28,
+            temp: 37,
             windSpeed: 12,
             condition: 'Partly Cloudy',
             icon: 'cloudy-night-outline',
             color: '#3B82F6',
             isSevere: false,
-            humidity: 75,
-            pressure: 1008,
+            humidity: 49,
+            pressure: 1003,
             precipitation: 0.0,
           });
-          setAlerts([]);
         }
       } finally {
         if (isMounted) setLoadingWeather(false);
@@ -222,7 +207,18 @@ export default function AlertScreen({ searchQuery = '' }) {
     };
   }, []);
 
-  const getSeverityStyle = (severity = 'Advisory') => {
+  const getSeverityStyle = (severity = 'Advisory', isActive = false) => {
+    if (!isActive) {
+      return {
+        bg: isDark ? '#0F172A' : '#F1F5F9',
+        border: '#94A3B8',
+        text: '#64748B',
+        badgeBg: '#94A3B8',
+        badgeText: '#FFFFFF',
+        statusLabel: 'INACTIVE • STANDBY',
+      };
+    }
+
     const sev = severity.toLowerCase();
     if (sev.includes('critical') || sev.includes('danger') || sev.includes('high')) {
       return {
@@ -231,6 +227,7 @@ export default function AlertScreen({ searchQuery = '' }) {
         text: '#DC2626',
         badgeBg: '#EF4444',
         badgeText: '#FFFFFF',
+        statusLabel: 'CRITICAL • ACTIVE DANGER',
       };
     }
     if (sev.includes('warning') || sev.includes('moderate')) {
@@ -240,6 +237,7 @@ export default function AlertScreen({ searchQuery = '' }) {
         text: '#D97706',
         badgeBg: '#F97316',
         badgeText: '#FFFFFF',
+        statusLabel: 'WARNING • ACTIVE',
       };
     }
     return {
@@ -248,6 +246,7 @@ export default function AlertScreen({ searchQuery = '' }) {
       text: '#2563EB',
       badgeBg: '#2563EB',
       badgeText: '#FFFFFF',
+      statusLabel: 'ADVISORY • ACTIVE',
     };
   };
 
@@ -277,14 +276,18 @@ export default function AlertScreen({ searchQuery = '' }) {
     <ScrollView style={[styles.container, { backgroundColor: colors.bg }]} contentContainerStyle={styles.contentContainer}>
       <View style={styles.mainWrapper}>
         {/* Header Hero Banner */}
-        <LinearGradient colors={['#DC2626', '#EA580C']} style={styles.heroCard}>
+        <LinearGradient colors={isSevereActive ? ['#DC2626', '#EA580C'] : ['#2563EB', '#1D4ED8']} style={styles.heroCard}>
           <View style={styles.heroHeader}>
             <View style={styles.heroIconWrap}>
-              <Ionicons name="warning-outline" size={24} color="#FFFFFF" />
+              <Ionicons name={isSevereActive ? 'warning-outline' : 'shield-checkmark-outline'} size={24} color="#FFFFFF" />
             </View>
             <View style={styles.heroTextWrap}>
               <Text style={styles.heroTitle}>Emergency Hazards & Weather</Text>
-              <Text style={styles.heroSubtitle}>Live local weather reports and emergency hazard alerts based on your real location.</Text>
+              <Text style={styles.heroSubtitle}>
+                {isSevereActive
+                  ? 'Severe weather hazards are active in your region. Follow safety instructions.'
+                  : 'Live real-time weather reports. All hazards currently set to INACTIVE STANDBY.'}
+              </Text>
             </View>
           </View>
         </LinearGradient>
@@ -307,7 +310,7 @@ export default function AlertScreen({ searchQuery = '' }) {
 
             <View style={styles.liveTag}>
               <View style={styles.liveDot} />
-              <Text style={styles.liveTagText}>LIVE REPORT</Text>
+              <Text style={styles.liveTagText}>LIVE REAL-TIME</Text>
             </View>
           </View>
 
@@ -359,62 +362,56 @@ export default function AlertScreen({ searchQuery = '' }) {
           ) : null}
         </View>
 
-        {/* Real Alert Cards OR All Clear Status Card */}
-        {visibleAlerts.length === 0 ? (
-          <View style={[styles.allClearCard, { backgroundColor: colors.allClearBg, borderColor: colors.allClearBorder }]}>
-            <View style={styles.allClearHeader}>
-              <Ionicons name="checkmark-circle" size={34} color="#10B981" style={{ marginRight: 12 }} />
-              <View style={{ flex: 1 }}>
-                <Text style={[styles.allClearTitle, { color: isDark ? '#A7F3D0' : '#065F46' }]}>
-                  All Clear — No Active Hazards
-                </Text>
-                <Text style={[styles.allClearSub, { color: isDark ? '#D1FAE5' : '#047857' }]}>
-                  Detected Location: <Text style={{ fontWeight: '800' }}>{villageName}</Text>. Weather conditions are calm ({weatherData?.condition || 'Normal'}) with no active emergency hazards.
-                </Text>
-              </View>
+        {/* Hazard Advisories List - Badged as INACTIVE or ACTIVE */}
+        <View style={styles.alertsList}>
+          <View style={styles.sectionHeaderRow}>
+            <Text style={[styles.alertsSectionTitle, { color: colors.text }]}>
+              Hazard Monitoring Advisories ({visibleAlerts.length})
+            </Text>
+            <View style={[styles.statusSummaryBadge, { backgroundColor: isSevereActive ? '#FEF2F2' : '#F1F5F9' }]}>
+              <View style={[styles.statusDot, { backgroundColor: isSevereActive ? '#EF4444' : '#64748B' }]} />
+              <Text style={[styles.statusSummaryText, { color: isSevereActive ? '#DC2626' : '#64748B' }]}>
+                {isSevereActive ? 'REAL HAZARD ACTIVE' : 'ALL ALERTS INACTIVE'}
+              </Text>
             </View>
           </View>
-        ) : (
-          <View style={styles.alertsList}>
-            <Text style={[styles.alertsSectionTitle, { color: colors.text }]}>
-              Active Hazard Advisories ({visibleAlerts.length})
-            </Text>
 
-            {visibleAlerts.map((alert) => {
-              const sevStyle = getSeverityStyle(alert.severity);
-              return (
-                <View
-                  key={alert.id}
-                  style={[
-                    styles.card,
-                    { backgroundColor: colors.card, borderColor: colors.border, borderLeftColor: sevStyle.border },
-                  ]}
-                >
-                  <View style={styles.cardTopRow}>
-                    <View style={styles.titleWrap}>
-                      <Ionicons name={alert.icon || 'warning'} size={20} color={sevStyle.text} style={{ marginRight: 8 }} />
-                      <Text style={[styles.alertTitle, { color: colors.text }]}>{alert.title}</Text>
-                    </View>
-                    <View style={[styles.badge, { backgroundColor: sevStyle.badgeBg }]}>
-                      <Text style={styles.badgeText}>{alert.severity || 'Advisory'}</Text>
-                    </View>
+          {visibleAlerts.map((alert) => {
+            const sevStyle = getSeverityStyle(alert.severity, isSevereActive);
+            return (
+              <View
+                key={alert.id}
+                style={[
+                  styles.card,
+                  { backgroundColor: colors.card, borderColor: colors.border, borderLeftColor: sevStyle.border },
+                ]}
+              >
+                <View style={styles.cardTopRow}>
+                  <View style={styles.titleWrap}>
+                    <Ionicons name={alert.icon || 'warning'} size={20} color={sevStyle.text} style={{ marginRight: 8 }} />
+                    <Text style={[styles.alertTitle, { color: colors.text }]}>{alert.title}</Text>
                   </View>
-
-                  <Text style={[styles.alertMessage, { color: colors.text }]}>{alert.message}</Text>
-
-                  <View style={styles.cardFooter}>
-                    <View style={styles.metaItem}>
-                      <Ionicons name="location-outline" size={14} color={colors.subtext} style={{ marginRight: 4 }} />
-                      <Text style={[styles.metaText, { color: colors.subtext }]}>{alert.location || villageName}</Text>
-                    </View>
-
-                    <Text style={[styles.timestampText, { color: colors.subtext }]}>{alert.timestamp || 'Active Alert'}</Text>
+                  <View style={[styles.badge, { backgroundColor: sevStyle.badgeBg }]}>
+                    <Text style={styles.badgeText}>{isSevereActive ? alert.severity : 'INACTIVE'}</Text>
                   </View>
                 </View>
-              );
-            })}
-          </View>
-        )}
+
+                <Text style={[styles.alertMessage, { color: colors.text }]}>{alert.message}</Text>
+
+                <View style={styles.cardFooter}>
+                  <View style={styles.metaItem}>
+                    <Ionicons name="location-outline" size={14} color={colors.subtext} style={{ marginRight: 4 }} />
+                    <Text style={[styles.metaText, { color: colors.subtext }]}>{alert.location || villageName}</Text>
+                  </View>
+
+                  <Text style={[styles.timestampText, { color: colors.subtext }]}>
+                    {isSevereActive ? alert.timestamp : 'Status: Inactive • Standby'}
+                  </Text>
+                </View>
+              </View>
+            );
+          })}
+        </View>
       </View>
     </ScrollView>
   );
@@ -586,32 +583,36 @@ const styles = StyleSheet.create({
     fontSize: 10,
     fontWeight: '700',
   },
-  allClearCard: {
-    borderRadius: 18,
-    borderWidth: 1.5,
-    padding: 18,
-    marginBottom: 16,
-  },
-  allClearHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  allClearTitle: {
-    fontSize: 16,
-    fontWeight: '900',
-    marginBottom: 4,
-  },
-  allClearSub: {
-    fontSize: 13,
-    lineHeight: 18,
-  },
   alertsList: {
     gap: 12,
+  },
+  sectionHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 4,
   },
   alertsSectionTitle: {
     fontSize: 16,
     fontWeight: '800',
-    marginBottom: 4,
+  },
+  statusSummaryBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 999,
+    gap: 6,
+  },
+  statusDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+  },
+  statusSummaryText: {
+    fontSize: 10,
+    fontWeight: '900',
+    letterSpacing: 0.5,
   },
   card: {
     borderRadius: 18,

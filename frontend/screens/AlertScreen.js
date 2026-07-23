@@ -116,7 +116,7 @@ export default function AlertScreen({ searchQuery = '' }) {
           const geoData = await geoRes.json();
           if (geoData && geoData.address) {
             const a = geoData.address;
-            const village = a.village || a.suburb || a.town || a.neighbourhood || a.city_district || a.county || a.city || 'Local Area';
+            const village = a.suburb || a.village || a.town || a.neighbourhood || a.city_district || a.county || a.city || 'Thandalam';
             const city = a.city || a.state_district || a.state || '';
             detectedVillage = city && city !== village ? `${village}, ${city}` : village;
           }
@@ -128,7 +128,7 @@ export default function AlertScreen({ searchQuery = '' }) {
             });
             if (address.length > 0) {
               const addr = address[0];
-              const village = addr.village || addr.subregion || addr.name || addr.district || addr.city || 'Local Area';
+              const village = addr.subregion || addr.village || addr.name || addr.district || addr.city || 'Thandalam';
               const region = addr.city || addr.region || '';
               detectedVillage = region && region !== village ? `${village}, ${region}` : village;
             }

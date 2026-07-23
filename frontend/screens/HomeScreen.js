@@ -170,7 +170,7 @@ export default function HomeScreen({ navigation }) {
           const geoData = await geoRes.json();
           if (geoData && geoData.address) {
             const a = geoData.address;
-            const village = a.village || a.suburb || a.town || a.neighbourhood || a.city_district || a.county || a.city || 'Local Area';
+            const village = a.suburb || a.village || a.town || a.neighbourhood || a.city_district || a.county || a.city || 'Thandalam';
             const city = a.city || a.state_district || a.state || '';
             locationLabel = city && city !== village ? `${village}, ${city}` : village;
           }

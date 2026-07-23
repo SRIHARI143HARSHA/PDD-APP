@@ -247,8 +247,11 @@ export default function AlertScreen({ searchQuery = '' }) {
         <View style={[styles.weatherCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
           <View style={styles.weatherCardHeader}>
             <View style={styles.locationHeaderRow}>
-              <Ionicons name="location" size={18} color="#2563EB" style={{ marginRight: 6 }} />
-              <Text style={[styles.locationTitle, { color: colors.text }]}>{city}</Text>
+              <Ionicons name="navigate-circle-outline" size={22} color="#2563EB" style={{ marginRight: 6 }} />
+              <View>
+                <Text style={[styles.locationEyebrow, { color: colors.subtext }]}>DETECTED LOCATION</Text>
+                <Text style={[styles.locationTitle, { color: colors.text }]}>{city} {coords ? `(${coords.lat.toFixed(2)}°, ${coords.lon.toFixed(2)}°)` : ''}</Text>
+              </View>
             </View>
             <View style={styles.liveTag}>
               <View style={styles.liveDot} />
@@ -420,8 +423,14 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
   },
+  locationEyebrow: {
+    fontSize: 10,
+    fontWeight: '900',
+    letterSpacing: 0.6,
+    marginBottom: 1,
+  },
   locationTitle: {
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: '800',
   },
   liveTag: {

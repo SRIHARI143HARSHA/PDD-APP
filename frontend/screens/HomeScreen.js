@@ -135,28 +135,52 @@ export default function HomeScreen({ navigation }) {
 
     const fetchLocationAndWeather = async () => {
       try {
-        const { status } = await Location.requestForegroundPermissionsAsync();
-        let lat = 17.3850;
-        let lon = 78.4867;
-        let locationLabel = 'Local Region';
+        let lat = 13.0281;
+        let lon = 80.0158;
+        let locationLabel = 'Local Area';
 
-        if (status === 'granted') {
-          const loc = await Location.getCurrentPositionAsync({});
-          lat = loc.coords.latitude;
-          lon = loc.coords.longitude;
+        if (typeof navigator !== 'undefined' && navigator.geolocation) {
+          await new Promise((resolve) => {
+            navigator.geolocation.getCurrentPosition(
+              (pos) => {
+                lat = pos.coords.latitude;
+                lon = pos.coords.longitude;
+                resolve();
+              },
+              async () => {
+                try {
+                  const { status } = await Location.requestForegroundPermissionsAsync();
+                  if (status === 'granted') {
+                    const loc = await Location.getCurrentPositionAsync({});
+                    lat = loc.coords.latitude;
+                    lon = loc.coords.longitude;
+                  }
+                } catch (e) {}
+                resolve();
+              },
+              { timeout: 5000 }
+            );
+          });
+        }
 
-          const address = await Location.reverseGeocodeAsync({ latitude: lat, longitude: lon });
-          if (address.length > 0) {
-            const addr = address[0];
-            const village = addr.village || addr.subregion || addr.name || addr.district || addr.city || 'Detected Location';
-            const city = addr.city || addr.region || '';
+        try {
+          const geoRes = await fetch(
+            `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}`
+          );
+          const geoData = await geoRes.json();
+          if (geoData && geoData.address) {
+            const a = geoData.address;
+            const village = a.village || a.suburb || a.town || a.neighbourhood || a.city_district || a.county || a.city || 'Local Area';
+            const city = a.city || a.state_district || a.state || '';
             locationLabel = city && city !== village ? `${village}, ${city}` : village;
           }
-        }
+        } catch (e) {}
 
         if (isMounted) setVillageName(locationLabel);
 
-        const res = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current_weather=true&hourly=relative_humidity_2m`);
+        const res = await fetch(
+          `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current_weather=true&hourly=relative_humidity_2m`
+        );
         const data = await res.json();
 
         if (isMounted && data && data.current_weather) {

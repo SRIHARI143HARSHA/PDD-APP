@@ -55,7 +55,7 @@ export default function AlertScreen({ searchQuery = '' }) {
   const isDark = theme?.dark ?? false;
 
   const [alerts, setAlerts] = useState([]);
-  const [villageName, setVillageName] = useState('Detecting location...');
+  const [villageName, setVillageName] = useState('Detecting real location...');
   const [coords, setCoords] = useState(null);
   const [weatherData, setWeatherData] = useState(null);
   const [loadingWeather, setLoadingWeather] = useState(true);
@@ -71,114 +71,150 @@ export default function AlertScreen({ searchQuery = '' }) {
   useEffect(() => {
     let isMounted = true;
 
-    const fetchFirestoreAlerts = async () => {
-      try {
-        const querySnapshot = await getDocs(collection(db, 'alerts'));
-        const data = [];
-        querySnapshot.forEach((doc) => {
-          data.push({ id: doc.id, ...doc.data() });
-        });
-        if (isMounted && data.length > 0) {
-          setAlerts(data);
-        }
-      } catch (error) {}
-    };
-
     const fetchLocationAndWeather = async () => {
       try {
-        const { status } = await Location.requestForegroundPermissionsAsync();
-        let currentLat = 17.3850;
-        let currentLon = 78.4867;
-        let detectedVillage = 'Local Village / Area';
+        let currentLat = 13.0281;
+        let currentLon = 80.0158;
+        let detectedVillage = 'Local Area';
 
-        if (status === 'granted') {
-          const loc = await Location.getCurrentPositionAsync({});
-          currentLat = loc.coords.latitude;
-          currentLon = loc.coords.longitude;
-
-          const address = await Location.reverseGeocodeAsync({
-            latitude: currentLat,
-            longitude: currentLon,
+        // 1. Try Browser / Device Geolocation
+        if (typeof navigator !== 'undefined' && navigator.geolocation) {
+          await new Promise((resolve) => {
+            navigator.geolocation.getCurrentPosition(
+              (pos) => {
+                currentLat = pos.coords.latitude;
+                currentLon = pos.coords.longitude;
+                resolve();
+              },
+              async () => {
+                try {
+                  const { status } = await Location.requestForegroundPermissionsAsync();
+                  if (status === 'granted') {
+                    const loc = await Location.getCurrentPositionAsync({});
+                    currentLat = loc.coords.latitude;
+                    currentLon = loc.coords.longitude;
+                  }
+                } catch (e) {}
+                resolve();
+              },
+              { timeout: 5000 }
+            );
           });
+        }
 
-          if (address.length > 0) {
-            const addr = address[0];
-            const village = addr.village || addr.subregion || addr.name || addr.district || addr.city || 'Detected Location';
-            const region = addr.city || addr.region || '';
-            detectedVillage = region && region !== village ? `${village}, ${region}` : village;
+        if (isMounted) {
+          setCoords({ lat: currentLat, lon: currentLon });
+        }
+
+        // 2. Fetch Real Village/Town Name using OpenStreetMap Nominatim API
+        try {
+          const geoRes = await fetch(
+            `https://nominatim.openstreetmap.org/reverse?format=json&lat=${currentLat}&lon=${currentLon}`
+          );
+          const geoData = await geoRes.json();
+          if (geoData && geoData.address) {
+            const a = geoData.address;
+            const village = a.village || a.suburb || a.town || a.neighbourhood || a.city_district || a.county || a.city || 'Local Area';
+            const city = a.city || a.state_district || a.state || '';
+            detectedVillage = city && city !== village ? `${village}, ${city}` : village;
           }
+        } catch (e) {
+          try {
+            const address = await Location.reverseGeocodeAsync({
+              latitude: currentLat,
+              longitude: currentLon,
+            });
+            if (address.length > 0) {
+              const addr = address[0];
+              const village = addr.village || addr.subregion || addr.name || addr.district || addr.city || 'Local Area';
+              const region = addr.city || addr.region || '';
+              detectedVillage = region && region !== village ? `${village}, ${region}` : village;
+            }
+          } catch (err) {}
         }
 
         if (isMounted) {
           setVillageName(detectedVillage);
-          setCoords({ lat: currentLat, lon: currentLon });
         }
 
-        // Fetch Live Detailed Weather from Open-Meteo (No API key required)
+        // 3. Fetch Live Real Weather from Open-Meteo
         const res = await fetch(
           `https://api.open-meteo.com/v1/forecast?latitude=${currentLat}&longitude=${currentLon}&current_weather=true&hourly=relative_humidity_2m,surface_pressure,precipitation`
         );
         const data = await res.json();
 
         if (isMounted && data && data.current_weather) {
-          const currentWeather = data.current_weather;
-          const weatherInfo = getWeatherInfo(currentWeather.weathercode);
+          const cw = data.current_weather;
+          const weatherInfo = getWeatherInfo(cw.weathercode);
           const humidity = data.hourly?.relative_humidity_2m?.[0] || 65;
           const pressure = Math.round(data.hourly?.surface_pressure?.[0] || 1012);
           const precip = data.hourly?.precipitation?.[0] || 0.0;
+          const isRealSevereIssue = weatherInfo.isSevere || cw.windspeed > 40 || precip > 10.0;
 
           setWeatherData({
-            temp: Math.round(currentWeather.temperature),
-            windSpeed: Math.round(currentWeather.windspeed),
+            temp: Math.round(cw.temperature),
+            windSpeed: Math.round(cw.windspeed),
             condition: weatherInfo.label,
             icon: weatherInfo.icon,
             color: weatherInfo.color,
-            isSevere: weatherInfo.isSevere || currentWeather.windspeed > 40,
+            isSevere: isRealSevereIssue,
             humidity: humidity,
             pressure: pressure,
             precipitation: precip,
           });
 
-          // Only push a hazard warning IF real severe weather is detected
-          if (weatherInfo.isSevere || currentWeather.windspeed > 40) {
-            setAlerts((prev) => {
-              const hasSevere = prev.some((a) => a.id === 'weather-severe');
-              if (hasSevere) return prev;
-              return [
-                {
-                  id: 'weather-severe',
-                  title: `Severe Weather Warning - ${weatherInfo.label}`,
-                  severity: currentWeather.windspeed > 50 ? 'Critical' : 'Warning',
-                  icon: 'warning',
-                  location: detectedVillage,
-                  message: `Live severe weather in ${detectedVillage}: ${weatherInfo.label} with wind speeds of ${Math.round(currentWeather.windspeed)} km/h. Take safety precautions immediately.`,
-                  timestamp: 'Live Active Alert',
-                },
-                ...prev,
-              ];
-            });
+          // 4. Handle Alerts:
+          // IF there is a REAL severe hazard (heavy storm, high winds > 40km/h, or extreme rain > 10mm), mark active alert!
+          // IF weather is normal/calm, keep alerts INACTIVE / ALL CLEAR unless an explicit live Firestore broadcast exists!
+          if (isRealSevereIssue) {
+            setAlerts([
+              {
+                id: 'weather-severe-active',
+                title: `Active Severe Hazard - ${weatherInfo.label}`,
+                severity: cw.windspeed > 50 ? 'Critical' : 'Warning',
+                icon: 'warning',
+                location: detectedVillage,
+                message: `Real-time hazard warning for ${detectedVillage}: ${weatherInfo.label} with winds of ${Math.round(cw.windspeed)} km/h and precipitation of ${precip} mm. Take emergency shelter immediately.`,
+                timestamp: 'Active Now • Real Time Alert',
+              },
+            ]);
+          } else {
+            // Check Firestore for custom real alerts only
+            try {
+              const querySnapshot = await getDocs(collection(db, 'alerts'));
+              const realDocs = [];
+              querySnapshot.forEach((doc) => {
+                const item = doc.data();
+                if (item && item.isRealHazard === true) {
+                  realDocs.push({ id: doc.id, ...item });
+                }
+              });
+              setAlerts(realDocs); // Empty array if no real hazards present
+            } catch (err) {
+              setAlerts([]);
+            }
           }
         }
       } catch (err) {
         if (isMounted) {
           setWeatherData({
             temp: 28,
-            windSpeed: 14,
-            condition: 'Clear Sky',
-            icon: 'sunny-outline',
-            color: '#F59E0B',
+            windSpeed: 12,
+            condition: 'Partly Cloudy',
+            icon: 'cloudy-night-outline',
+            color: '#3B82F6',
             isSevere: false,
-            humidity: 60,
-            pressure: 1013,
+            humidity: 75,
+            pressure: 1008,
             precipitation: 0.0,
           });
+          setAlerts([]);
         }
       } finally {
         if (isMounted) setLoadingWeather(false);
       }
     };
 
-    fetchFirestoreAlerts();
     fetchLocationAndWeather();
 
     return () => {
@@ -323,7 +359,7 @@ export default function AlertScreen({ searchQuery = '' }) {
           ) : null}
         </View>
 
-        {/* Alert Cards OR All Clear Status */}
+        {/* Real Alert Cards OR All Clear Status Card */}
         {visibleAlerts.length === 0 ? (
           <View style={[styles.allClearCard, { backgroundColor: colors.allClearBg, borderColor: colors.allClearBorder }]}>
             <View style={styles.allClearHeader}>
@@ -333,7 +369,7 @@ export default function AlertScreen({ searchQuery = '' }) {
                   All Clear — No Active Hazards
                 </Text>
                 <Text style={[styles.allClearSub, { color: isDark ? '#D1FAE5' : '#047857' }]}>
-                  Detected Location: <Text style={{ fontWeight: '800' }}>{villageName}</Text>. No severe weather or active emergency alerts are currently reported for your area.
+                  Detected Location: <Text style={{ fontWeight: '800' }}>{villageName}</Text>. Weather conditions are calm ({weatherData?.condition || 'Normal'}) with no active emergency hazards.
                 </Text>
               </View>
             </View>

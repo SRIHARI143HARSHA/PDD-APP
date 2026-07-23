@@ -12,7 +12,7 @@ import {
     useColorScheme,
 } from 'react-native';
 import { db } from '../../database/config';
-import { ThemeContext } from '../App';
+import { ThemeContext } from '../context/ThemeContext';
 import { defaultAlerts } from './AlertScreen';
 
 const quickActions = [

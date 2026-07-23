@@ -11,7 +11,7 @@ import {
     TouchableOpacity,
     View,
 } from 'react-native';
-import { ThemeContext } from '../App';
+import { ThemeContext } from '../context/ThemeContext';
 import { askChatbot } from '../services/chatbotService';
 
 const suggestedPrompts = [

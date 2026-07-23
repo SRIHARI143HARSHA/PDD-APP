@@ -2,7 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useContext } from 'react';
 import { Platform, StatusBar, StyleSheet, Switch, Text, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { ThemeContext } from '../App';
+import { ThemeContext } from '../frontend/context/ThemeContext';
 
 const pageTitles = {
   Home: 'Dashboard',

@@ -3,7 +3,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useContext, useEffect, useState } from 'react';
 import { Image, Linking, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { courseData } from '../../data/courseData';
-import { ThemeContext } from '../App';
+import { ThemeContext } from '../context/ThemeContext';
 
 export default function CourseDetailsScreen({ route, navigation }) {
   const theme = useContext(ThemeContext);

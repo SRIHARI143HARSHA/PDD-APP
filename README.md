@@ -16,6 +16,19 @@ This is an [Expo](https://expo.dev) project created with [`create-expo-app`](htt
    npx expo start
    ```
 
+Before you start the app, set your Firebase Web API key in the environment:
+
+```bash
+# macOS / Linux
+export FIREBASE_API_KEY="YOUR_REAL_FIREBASE_API_KEY"
+
+# Windows PowerShell
+$env:FIREBASE_API_KEY="YOUR_REAL_FIREBASE_API_KEY"
+
+# Windows cmd.exe
+set FIREBASE_API_KEY=YOUR_REAL_FIREBASE_API_KEY
+```
+
 In the output, you'll find options to open the app in a
 
 - [development build](https://docs.expo.dev/develop/development-builds/introduction/)

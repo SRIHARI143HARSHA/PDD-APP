@@ -10,7 +10,7 @@ import {
     View,
 } from 'react-native';
 import { courseData } from '../../data/courseData';
-import { ThemeContext } from '../App';
+import { ThemeContext } from '../context/ThemeContext';
 
 const defaultCourseData = {
   'Flood Safety': { started: false, completedLessons: [], totalLessons: 6 },

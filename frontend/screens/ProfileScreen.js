@@ -13,7 +13,7 @@ import {
     View,
 } from 'react-native';
 import { db } from '../../database/config';
-import { ThemeContext } from '../App';
+import { ThemeContext } from '../context/ThemeContext';
 
 export default function ProfileScreen({ navigation, realNavigation }) {
   const theme = useContext(ThemeContext);

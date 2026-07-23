@@ -1,15 +1,11 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { StatusBar } from 'expo-status-bar';
-import { createContext, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Platform } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
+import { ThemeContext } from './context/ThemeContext';
 import AppNavigator from './navigation/AppNavigator';
-
-export const ThemeContext = createContext({
-  dark: false,
-  toggle: () => {},
-});
 
 export default function App() {
   const [dark, setDark] = useState(false);

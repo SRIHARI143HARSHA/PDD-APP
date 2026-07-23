@@ -3,7 +3,7 @@ import * as Location from 'expo-location';
 import { useContext, useEffect, useState } from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import MapView, { Marker } from 'react-native-maps';
-import { ThemeContext } from '../App';
+import { ThemeContext } from '../context/ThemeContext';
 
 const initialLayers = [
   { id: 'flood', label: 'Flood Zones', active: true, color: '#2563EB', icon: 'water-outline' },

@@ -13,7 +13,7 @@ import {
     TouchableOpacity,
     View,
 } from 'react-native';
-import { ThemeContext } from '../App';
+import { ThemeContext } from '../context/ThemeContext';
 
 import Header from '../../components/Header';
 import AlertScreen from '../screens/AlertScreen';

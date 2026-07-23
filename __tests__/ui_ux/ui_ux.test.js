@@ -2,7 +2,7 @@ const fs = require('fs');
 const path = require('path');
 
 describe('UI/UX & Accessibility Standard Verification', () => {
-  const screensDir = path.join(__dirname, '../../screens');
+  const screensDir = path.join(__dirname, '../../frontend/screens');
   const screenFiles = fs.readdirSync(screensDir).filter(f => f.endsWith('.js') && !f.endsWith('.new'));
 
   describe('UI-001: Accessibility Property Audit', () => {

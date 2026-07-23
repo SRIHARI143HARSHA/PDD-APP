@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useContext, useEffect, useState } from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import { ThemeContext } from '../App';
+import { ThemeContext } from '../context/ThemeContext';
 
 const initialLayers = [
   { id: 'flood', label: 'Flood Zones', active: true, color: '#2563EB', icon: 'water-outline' },

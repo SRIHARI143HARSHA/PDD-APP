@@ -9,7 +9,7 @@ import {
     View,
 } from 'react-native';
 import { courseData } from '../../data/courseData';
-import { ThemeContext } from '../App';
+import { ThemeContext } from '../context/ThemeContext';
 
 const defaultQuizData = {
   'Flood Safety': { attempted: false, attempts: 0, latestScore: null, bestScore: null },

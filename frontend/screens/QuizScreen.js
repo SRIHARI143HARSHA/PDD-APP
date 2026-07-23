@@ -11,7 +11,7 @@ import {
 } from 'react-native';
 import { courseData } from '../../data/courseData';
 import { db } from '../../database/config';
-import { ThemeContext } from '../App';
+import { ThemeContext } from '../context/ThemeContext';
 
 export default function QuizScreen({ route, navigation }) {
   const theme = useContext(ThemeContext);

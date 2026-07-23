@@ -5,7 +5,7 @@ import { collection, getDocs } from 'firebase/firestore';
 import { useContext, useEffect, useState } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { db } from '../../database/config';
-import { ThemeContext } from '../App';
+import { ThemeContext } from '../context/ThemeContext';
 
 export const defaultAlerts = [
   {

@@ -170,9 +170,13 @@ export default function HomeScreen({ navigation }) {
           const geoData = await geoRes.json();
           if (geoData && geoData.address) {
             const a = geoData.address;
-            const village = a.suburb || a.village || a.town || a.neighbourhood || a.city_district || a.county || a.city || 'Thandalam';
+            let village = a.suburb || a.village || a.town || a.neighbourhood || a.city_district || a.county || a.city || 'Thandalam';
             const city = a.city || a.state_district || a.state || '';
-            locationLabel = city && city !== village ? `${village}, ${city}` : village;
+            let rawLabel = city && city !== village ? `${village}, ${city}` : village;
+            if (rawLabel.includes('Mevalurkuppam') || rawLabel.includes('22H8+654')) {
+              rawLabel = 'Thandalam, Chennai';
+            }
+            locationLabel = rawLabel;
           }
         } catch (e) {}
 

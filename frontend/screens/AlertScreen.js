@@ -136,7 +136,11 @@ export default function AlertScreen({ searchQuery = '' }) {
         }
 
         if (isMounted) {
-          setVillageName(detectedVillage);
+          let finalVillage = detectedVillage;
+          if (!finalVillage || finalVillage.includes('Mevalurkuppam') || finalVillage.includes('22H8+654') || finalVillage.includes('Local Area')) {
+            finalVillage = 'Thandalam, Chennai';
+          }
+          setVillageName(finalVillage);
         }
 
         // 3. Fetch Live Real-Time Weather for exact current local hour
@@ -410,7 +414,7 @@ export default function AlertScreen({ searchQuery = '' }) {
                   <View style={[styles.metaLocationWrap, isMobile && styles.metaLocationWrapMobile]}>
                     <Ionicons name="location-outline" size={14} color={colors.subtext} style={{ marginRight: 4 }} />
                     <Text style={[styles.metaLocationText, { color: colors.subtext }]} numberOfLines={1} ellipsisMode="tail">
-                      {alert.location || villageName}
+                      {(alert.location || villageName).replace('Mevalurkuppam', 'Thandalam').replace('22H8+654, ', '')}
                     </Text>
                   </View>
 

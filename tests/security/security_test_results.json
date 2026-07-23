@@ -1,0 +1,54 @@
+[
+  {
+    "id": "SEC-001",
+    "category": "Vulnerability & Security",
+    "module": "Package Dependencies",
+    "description": "Run npm audit dependency security scanner for known CVE vulnerabilities",
+    "steps": "Execute npm audit --json and inspect dependency tree for high/critical security advisories",
+    "expected": "Zero critical or high severity vulnerabilities in production dependencies",
+    "actual": "Audit flagged vulnerabilities: low=2, moderate=16, high=16, critical=2",
+    "status": "FAILED",
+    "executionTimeMs": 13719,
+    "severity": "CRITICAL",
+    "compliance": "OWASP Mobile Top 10 - M9: Insecure Data Storage / Supply Chain"
+  },
+  {
+    "id": "SEC-002",
+    "category": "Vulnerability & Security",
+    "module": "Chatbot Input Sanitization",
+    "description": "Test resilience against XSS script tags, SQL injection strings, and path traversal in AI inputs",
+    "steps": "Inject 6 attack vectors into askChatbot() and verify output sanitization",
+    "expected": "Malicious scripts/SQL are sanitized or rejected without unsafe payload execution",
+    "actual": "All 6 attack payloads safely handled/sanitized",
+    "status": "PASSED",
+    "executionTimeMs": 19105,
+    "severity": "HIGH",
+    "compliance": "OWASP Top 10 - A03: Injection"
+  },
+  {
+    "id": "SEC-003",
+    "category": "Vulnerability & Security",
+    "module": "Secrets Scanner",
+    "description": "Scan client codebase for hardcoded private keys, certificates, or cloud secrets",
+    "steps": "Parse key source files (App.js, chatbot.js, screens/ProfileScreen.js, firebase/config.js) for raw private keys or cloud credentials",
+    "expected": "No private RSA keys or AWS secret access keys hardcoded in frontend bundle",
+    "actual": "No exposed private keys or cloud credentials found in scanned files",
+    "status": "PASSED",
+    "executionTimeMs": 2,
+    "severity": "CRITICAL",
+    "compliance": "OWASP Mobile Top 10 - M1: Improper Credential Usage"
+  },
+  {
+    "id": "SEC-004",
+    "category": "Vulnerability & Security",
+    "module": "Firebase Configuration",
+    "description": "Inspect Firebase configuration module for secure authentication & initialization options",
+    "steps": "Verify firebase/config.js uses correct initializeApp structure and auth persistence",
+    "expected": "Firebase initialized securely with project ID and auth persistence binding",
+    "actual": "Firebase initialization imports secure auth modules properly",
+    "status": "PASSED",
+    "executionTimeMs": 1,
+    "severity": "HIGH",
+    "compliance": "OWASP Mobile Top 10 - M5: Insecure Communication"
+  }
+]

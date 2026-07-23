@@ -1,0 +1,314 @@
+import { useContext, useEffect, useState } from 'react';
+import {
+  Alert,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+} from 'react-native';
+import { getAuth, signOut } from 'firebase/auth';
+import { doc, getDoc, updateDoc } from 'firebase/firestore';
+import { Ionicons } from '@expo/vector-icons';
+import { ThemeContext } from '../App';
+import { db } from '../firebase/config';
+
+export default function ProfileScreen({ navigation }) {
+  const theme = useContext(ThemeContext);
+  const isDark = theme?.dark ?? false;
+  const auth = getAuth();
+  const user = auth.currentUser;
+
+  const [editing, setEditing] = useState(false);
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
+  const [phone, setPhone] = useState('');
+  const [email, setEmail] = useState('');
+
+  useEffect(() => {
+    loadProfile();
+  }, []);
+
+  const loadProfile = async () => {
+    try {
+      const docRef = doc(db, 'users', user.uid);
+      const docSnap = await getDoc(docRef);
+
+      if (docSnap.exists()) {
+        const data = docSnap.data();
+        setFirstName(data.firstName || '');
+        setLastName(data.lastName || '');
+        setPhone(data.phone || '');
+        setEmail(data.email || '');
+      }
+    } catch (error) {
+      console.log(error);
+    }
+  };
+
+  const saveProfile = async () => {
+    try {
+      await updateDoc(doc(db, 'users', user.uid), {
+        firstName,
+        lastName,
+        phone,
+      });
+      setEditing(false);
+      Alert.alert('Success', 'Profile Updated Successfully');
+    } catch (error) {
+      Alert.alert('Error', error.message);
+    }
+  };
+
+  const handleLogout = async () => {
+    await signOut(auth);
+    navigation.reset({ index: 0, routes: [{ name: 'Login' }] });
+  };
+
+  const initials = `${firstName?.[0] || 'U'}${lastName?.[0] || ''}`.toUpperCase();
+
+  return (
+    <View style={[styles.container, { backgroundColor: isDark ? '#061225' : '#F5F7FA' }]}> 
+      <View style={[styles.heroCard, { backgroundColor: isDark ? '#071426' : '#FFFFFF' }]}> 
+        <View style={styles.heroTopRow}>
+          <View>
+            <Text style={[styles.eyebrow, { color: isDark ? '#7DD3FC' : '#2563EB' }]}>My account</Text>
+            <Text style={[styles.title, { color: isDark ? '#E6EEF8' : '#111827' }]}>Welcome back</Text>
+          </View>
+          <View style={[styles.avatarBadge, { backgroundColor: isDark ? '#0B1220' : '#EFF6FF' }]}> 
+            <Text style={[styles.avatarText, { color: isDark ? '#E2E8F0' : '#2563EB' }]}>{initials}</Text>
+          </View>
+        </View>
+
+        <View style={styles.summaryRow}>
+          <View style={[styles.summaryCard, { backgroundColor: isDark ? '#0B1220' : '#F8FAFC' }]}> 
+            <Text style={[styles.summaryLabel, { color: isDark ? '#94A3B8' : '#64748B' }]}>Name</Text>
+            <Text style={[styles.summaryValue, { color: isDark ? '#F8FAFC' : '#0F172A' }]}>{`${firstName || 'Your'} ${lastName || 'Name'}`.trim()}</Text>
+          </View>
+          <View style={[styles.summaryCard, { backgroundColor: isDark ? '#0B1220' : '#F8FAFC' }]}> 
+            <Text style={[styles.summaryLabel, { color: isDark ? '#94A3B8' : '#64748B' }]}>Membership</Text>
+            <Text style={[styles.summaryValue, { color: isDark ? '#F8FAFC' : '#0F172A' }]}>Premium</Text>
+          </View>
+        </View>
+      </View>
+
+      <View style={[styles.contentCard, { backgroundColor: isDark ? '#071426' : '#FFFFFF' }]}> 
+        <View style={styles.sectionHeader}>
+          <Text style={[styles.sectionTitle, { color: isDark ? '#E6EEF8' : '#111827' }]}>Personal details</Text>
+          <TouchableOpacity onPress={() => setEditing((v) => !v)}>
+            <Text style={[styles.inlineAction, { color: isDark ? '#7DD3FC' : '#2563EB' }]}>{editing ? 'Cancel' : 'Edit'}</Text>
+          </TouchableOpacity>
+        </View>
+
+        <View style={styles.fieldGroup}>
+          <Text style={[styles.label, { color: isDark ? '#94A3B8' : '#64748B' }]}>First Name</Text>
+          <TextInput
+            style={[styles.input, { backgroundColor: isDark ? '#0B1220' : '#F8FAFC', color: isDark ? '#E6EEF8' : '#111827' }]}
+            value={firstName}
+            onChangeText={setFirstName}
+            editable={editing}
+          />
+        </View>
+
+        <View style={styles.fieldGroup}>
+          <Text style={[styles.label, { color: isDark ? '#94A3B8' : '#64748B' }]}>Last Name</Text>
+          <TextInput
+            style={[styles.input, { backgroundColor: isDark ? '#0B1220' : '#F8FAFC', color: isDark ? '#E6EEF8' : '#111827' }]}
+            value={lastName}
+            onChangeText={setLastName}
+            editable={editing}
+          />
+        </View>
+
+        <View style={styles.fieldGroup}>
+          <Text style={[styles.label, { color: isDark ? '#94A3B8' : '#64748B' }]}>Email</Text>
+          <View style={[styles.readOnlyBox, { backgroundColor: isDark ? '#0B1220' : '#F8FAFC' }]}> 
+            <Text style={[styles.value, { color: isDark ? '#E6EEF8' : '#111827' }]}>{email}</Text>
+          </View>
+        </View>
+
+        <View style={styles.fieldGroup}>
+          <Text style={[styles.label, { color: isDark ? '#94A3B8' : '#64748B' }]}>Mobile Number</Text>
+          <TextInput
+            style={[styles.input, { backgroundColor: isDark ? '#0B1220' : '#F8FAFC', color: isDark ? '#E6EEF8' : '#111827' }]}
+            value={phone}
+            onChangeText={setPhone}
+            editable={editing}
+          />
+        </View>
+
+        <View style={styles.actionRow}>
+          {editing ? (
+            <TouchableOpacity style={styles.saveButton} onPress={saveProfile}>
+              <Ionicons name="checkmark-circle" size={18} color="#FFFFFF" />
+              <Text style={styles.buttonText}>Save changes</Text>
+            </TouchableOpacity>
+          ) : (
+            <TouchableOpacity style={styles.secondaryButton} onPress={() => setEditing(true)}>
+              <Ionicons name="create-outline" size={18} color="#2563EB" />
+              <Text style={styles.secondaryButtonText}>Edit profile</Text>
+            </TouchableOpacity>
+          )}
+
+          <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
+            <Ionicons name="log-out-outline" size={18} color="#FFFFFF" />
+            <Text style={styles.buttonText}>Logout</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    padding: 16,
+    backgroundColor: '#F5F7FA',
+  },
+  heroCard: {
+    borderRadius: 24,
+    padding: 18,
+    marginBottom: 14,
+    shadowColor: '#000',
+    shadowOpacity: 0.08,
+    shadowRadius: 14,
+    shadowOffset: { width: 0, height: 8 },
+  },
+  heroTopRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 14,
+  },
+  eyebrow: {
+    fontSize: 12,
+    fontWeight: '700',
+    textTransform: 'uppercase',
+    letterSpacing: 0.6,
+    marginBottom: 4,
+  },
+  title: {
+    fontSize: 24,
+    fontWeight: '800',
+  },
+  avatarBadge: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  avatarText: {
+    fontSize: 16,
+    fontWeight: '800',
+  },
+  summaryRow: {
+    flexDirection: 'row',
+    gap: 10,
+  },
+  summaryCard: {
+    flex: 1,
+    borderRadius: 16,
+    padding: 12,
+  },
+  summaryLabel: {
+    fontSize: 11,
+    fontWeight: '700',
+    textTransform: 'uppercase',
+    marginBottom: 4,
+  },
+  summaryValue: {
+    fontSize: 15,
+    fontWeight: '700',
+  },
+  contentCard: {
+    borderRadius: 24,
+    padding: 16,
+    shadowColor: '#000',
+    shadowOpacity: 0.06,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 4 },
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: '800',
+  },
+  inlineAction: {
+    fontSize: 14,
+    fontWeight: '700',
+  },
+  fieldGroup: {
+    marginBottom: 10,
+  },
+  label: {
+    fontSize: 12,
+    fontWeight: '700',
+    marginBottom: 6,
+  },
+  input: {
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+  },
+  readOnlyBox: {
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 12,
+  },
+  value: {
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  actionRow: {
+    flexDirection: 'row',
+    gap: 10,
+    marginTop: 12,
+  },
+  saveButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    backgroundColor: '#2563EB',
+    paddingVertical: 12,
+    borderRadius: 12,
+  },
+  secondaryButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    backgroundColor: '#EFF6FF',
+    paddingVertical: 12,
+    borderRadius: 12,
+  },
+  secondaryButtonText: {
+    color: '#2563EB',
+    fontWeight: '700',
+  },
+  logoutButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    backgroundColor: '#EF4444',
+    paddingVertical: 12,
+    borderRadius: 12,
+  },
+  buttonText: {
+    color: '#FFF',
+    fontWeight: '700',
+  },
+});

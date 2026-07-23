@@ -1,0 +1,54 @@
+[
+  {
+    "id": "LOAD-001",
+    "category": "Load & Stress",
+    "module": "Chatbot Engine",
+    "description": "Evaluate API Rate Limit & Throttling under 20 concurrent queries",
+    "steps": "Execute 20 parallel requests to askChatbot() and measure rate limit handling",
+    "expected": "API handles rate limits gracefully without unhandled crashes; successful responses latency < 3000ms",
+    "actual": "20 succeeded, 0 rate-limited (HTTP 429), 0 errors. Total time: 584ms, Avg Success Latency: 445.05ms",
+    "status": "PASSED",
+    "executionTimeMs": 584,
+    "severity": "HIGH",
+    "compliance": "ISO/IEC 25010 Reliability & Rate-Limiting"
+  },
+  {
+    "id": "STRESS-002",
+    "category": "Load & Stress",
+    "module": "Course Data Service",
+    "description": "Process 10000 sequential data fetch queries under high memory load",
+    "steps": "Execute 10000 iterations of course data querying and measure heap memory delta",
+    "expected": "Processing completes in < 1000ms, heap memory delta < 15MB",
+    "actual": "Processed 10000 queries in 1ms. Memory Heap Delta: 0.06 MB",
+    "status": "PASSED",
+    "executionTimeMs": 1,
+    "severity": "MEDIUM",
+    "compliance": "ISO/IEC 25010 Resource Utilization"
+  },
+  {
+    "id": "STRESS-003",
+    "category": "Load & Stress",
+    "module": "Emergency Alerts Engine",
+    "description": "Inject burst of 100 emergency alert payloads simultaneously",
+    "steps": "Generate and structure 100 emergency alert payloads with high data volume",
+    "expected": "Burst payload generation completes under 200ms without memory leak",
+    "actual": "Generated 100 payloads (48.8 KB total) in 1ms",
+    "status": "PASSED",
+    "executionTimeMs": 1,
+    "severity": "CRITICAL",
+    "compliance": "Emergency Alert Service Level Objective (SLO)"
+  },
+  {
+    "id": "LOAD-004",
+    "category": "Load & Stress",
+    "module": "Network Resilience",
+    "description": "Evaluate app state handling under network throttling (50ms - 300ms delay)",
+    "steps": "Simulate high latent networks (3G / degraded 4G) and verify non-blocking execution",
+    "expected": "App handles delays gracefully without uncaught promise rejections",
+    "actual": "Simulated network delay total 683ms. Non-blocking state preserved",
+    "status": "PASSED",
+    "executionTimeMs": 683,
+    "severity": "MEDIUM",
+    "compliance": "Mobile Network Degradation ISO 25010"
+  }
+]

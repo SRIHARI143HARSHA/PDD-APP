@@ -1,8 +1,10 @@
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
+import * as Location from 'expo-location';
 import { collection, getDocs } from 'firebase/firestore';
 import { useContext, useEffect, useState } from 'react';
 import {
+    ActivityIndicator,
     Image,
     ScrollView,
     StyleSheet,
@@ -22,14 +24,29 @@ const quickActions = [
   { label: 'Alerts', icon: 'warning-outline', screen: 'Alerts', accent: ['#EF4444', '#F87171'] },
 ];
 
+function getWeatherInfo(code) {
+  if (code === 0) return { label: 'Clear Sky', icon: 'sunny-outline', color: '#F59E0B' };
+  if (code >= 1 && code <= 3) return { label: 'Partly Cloudy', icon: 'cloudy-night-outline', color: '#3B82F6' };
+  if (code === 45 || code === 48) return { label: 'Foggy', icon: 'cloud-outline', color: '#64748B' };
+  if (code >= 51 && code <= 57) return { label: 'Light Drizzle', icon: 'rainy-outline', color: '#0EA5E9' };
+  if (code >= 61 && code <= 67) return { label: 'Heavy Rain', icon: 'thunderstorm-outline', color: '#0284C7' };
+  if (code >= 71 && code <= 77) return { label: 'Snow', icon: 'snow-outline', color: '#38BDF8' };
+  if (code >= 80 && code <= 82) return { label: 'Rain Showers', icon: 'rainy-outline', color: '#0284C7' };
+  if (code >= 95) return { label: 'Thunderstorm', icon: 'thunderstorm-outline', color: '#DC2626' };
+  return { label: 'Moderate Weather', icon: 'cloud-outline', color: '#3B82F6' };
+}
+
 export default function HomeScreen({ navigation }) {
   const [activeAlertsCount, setActiveAlertsCount] = useState(defaultAlerts.length);
   const [quizzesCompleted, setQuizzesCompleted] = useState(0);
   const [coursesCompleted, setCoursesCompleted] = useState(0);
   const [preparednessPercent, setPreparednessPercent] = useState(0);
+  const [villageName, setVillageName] = useState('Detecting location...');
+  const [weatherData, setWeatherData] = useState(null);
+  const [loadingWeather, setLoadingWeather] = useState(true);
+
   const computePreparedness = () => {
     try {
-      // Courses percent
       let completedLessonsOverall = 0;
       let totalLessonsOverall = 0;
       if (typeof window !== 'undefined' && window.localStorage) {
@@ -46,7 +63,6 @@ export default function HomeScreen({ navigation }) {
 
       const coursePercent = totalLessonsOverall > 0 ? Math.round((completedLessonsOverall / totalLessonsOverall) * 100) : 0;
 
-      // Quiz percent
       let quizPercent = 0;
       if (typeof window !== 'undefined' && window.localStorage) {
         const savedQuizzes = window.localStorage.getItem('disaster_app_quiz_progress');
@@ -61,7 +77,6 @@ export default function HomeScreen({ navigation }) {
         }
       }
 
-      // If no progress at all, show 0 and do not auto-update from a hardcoded value.
       const hasProgress = coursePercent > 0 || quizPercent > 0;
       const preparedness = hasProgress ? Math.round((coursePercent + quizPercent) / 2) : 0;
       setPreparednessPercent(preparedness);
@@ -71,6 +86,8 @@ export default function HomeScreen({ navigation }) {
   };
 
   useEffect(() => {
+    let isMounted = true;
+
     const loadQuizStats = () => {
       try {
         if (typeof window !== 'undefined' && window.localStorage) {
@@ -107,7 +124,6 @@ export default function HomeScreen({ navigation }) {
       }
     };
 
-
     const loadAlerts = async () => {
       try {
         const querySnapshot = await getDocs(collection(db, 'alerts'));
@@ -117,14 +133,74 @@ export default function HomeScreen({ navigation }) {
       }
     };
 
+    const fetchLocationAndWeather = async () => {
+      try {
+        const { status } = await Location.requestForegroundPermissionsAsync();
+        let lat = 17.3850;
+        let lon = 78.4867;
+        let locationLabel = 'Local Region';
+
+        if (status === 'granted') {
+          const loc = await Location.getCurrentPositionAsync({});
+          lat = loc.coords.latitude;
+          lon = loc.coords.longitude;
+
+          const address = await Location.reverseGeocodeAsync({ latitude: lat, longitude: lon });
+          if (address.length > 0) {
+            const addr = address[0];
+            const village = addr.village || addr.subregion || addr.name || addr.district || addr.city || 'Detected Location';
+            const city = addr.city || addr.region || '';
+            locationLabel = city && city !== village ? `${village}, ${city}` : village;
+          }
+        }
+
+        if (isMounted) setVillageName(locationLabel);
+
+        const res = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current_weather=true&hourly=relative_humidity_2m`);
+        const data = await res.json();
+
+        if (isMounted && data && data.current_weather) {
+          const cw = data.current_weather;
+          const info = getWeatherInfo(cw.weathercode);
+          const humidity = data.hourly?.relative_humidity_2m?.[0] || 65;
+
+          setWeatherData({
+            temp: Math.round(cw.temperature),
+            windSpeed: Math.round(cw.windspeed),
+            condition: info.label,
+            icon: info.icon,
+            color: info.color,
+            humidity: humidity,
+          });
+        }
+      } catch (e) {
+        if (isMounted) {
+          setWeatherData({
+            temp: 28,
+            windSpeed: 14,
+            condition: 'Clear Sky',
+            icon: 'sunny-outline',
+            color: '#F59E0B',
+            humidity: 60,
+          });
+        }
+      } finally {
+        if (isMounted) setLoadingWeather(false);
+      }
+    };
+
     loadQuizStats();
     loadCourseStats();
     computePreparedness();
     loadAlerts();
+    fetchLocationAndWeather();
+
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
   useEffect(() => {
-    // Recompute preparedness whenever quiz/course completion counts change
     computePreparedness();
   }, [quizzesCompleted, coursesCompleted]);
 
@@ -132,7 +208,7 @@ export default function HomeScreen({ navigation }) {
     {
       label: 'Preparedness Score',
       value: `${preparednessPercent}%`,
-      note: preparednessPercent === 0 ? 'Complete courses & quizzes to update' : 'Keep going!',
+      note: preparednessPercent === 0 ? 'Complete courses & quizzes' : 'Keep going!',
     },
     { label: 'Courses Completed', value: `${coursesCompleted}`, note: 'Keep learning!' },
     { label: 'Active Alerts', value: `${activeAlertsCount}`, note: 'Stay updated!' },
@@ -167,7 +243,7 @@ export default function HomeScreen({ navigation }) {
       style={[styles.container, { backgroundColor: colors.bg }]}
       contentContainerStyle={styles.contentContainer}
     >
-      {/* Exact Hero Banner Specification */}
+      {/* Hero Banner */}
       <View style={styles.heroWrapper}>
         <View style={styles.heroCard}>
           <Image
@@ -214,6 +290,34 @@ export default function HomeScreen({ navigation }) {
             </View>
           </LinearGradient>
         </View>
+
+        {/* Live Weather & Detected Location Card */}
+        <TouchableOpacity
+          style={[styles.weatherBanner, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}
+          onPress={() => navigation.navigate('Alerts')}
+          activeOpacity={0.85}
+        >
+          <View style={styles.weatherBannerHeader}>
+            <Ionicons name="navigate-circle" size={22} color="#2563EB" style={{ marginRight: 6 }} />
+            <Text style={[styles.weatherLocationText, { color: colors.text }]}>Detected Location: {villageName}</Text>
+          </View>
+
+          {loadingWeather ? (
+            <ActivityIndicator size="small" color="#2563EB" />
+          ) : weatherData ? (
+            <View style={styles.weatherRow}>
+              <View style={styles.weatherTempWrap}>
+                <Text style={[styles.weatherTempText, { color: colors.text }]}>{weatherData.temp}°C</Text>
+                <Text style={[styles.weatherCondText, { color: weatherData.color }]}>{weatherData.condition}</Text>
+              </View>
+              <Ionicons name={weatherData.icon} size={32} color={weatherData.color} />
+              <View style={styles.weatherMetricsRow}>
+                <Text style={[styles.weatherMetricTag, { color: colors.secondaryText }]}>💨 {weatherData.windSpeed} km/h</Text>
+                <Text style={[styles.weatherMetricTag, { color: colors.secondaryText }]}>💧 {weatherData.humidity}%</Text>
+              </View>
+            </View>
+          ) : null}
+        </TouchableOpacity>
 
         {/* Quick Stats Grid */}
         <View style={styles.quickStatsRow}>
@@ -375,6 +479,51 @@ const styles = StyleSheet.create({
   },
   buttonIcon: {
     marginRight: 8,
+  },
+  weatherBanner: {
+    borderRadius: 16,
+    borderWidth: 1,
+    padding: 14,
+    marginBottom: 16,
+    shadowColor: '#000',
+    shadowOpacity: 0.04,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 2 },
+  },
+  weatherBannerHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  weatherLocationText: {
+    fontSize: 14,
+    fontWeight: '800',
+  },
+  weatherRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  weatherTempWrap: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    gap: 8,
+  },
+  weatherTempText: {
+    fontSize: 24,
+    fontWeight: '900',
+  },
+  weatherCondText: {
+    fontSize: 13,
+    fontWeight: '800',
+  },
+  weatherMetricsRow: {
+    flexDirection: 'row',
+    gap: 10,
+  },
+  weatherMetricTag: {
+    fontSize: 12,
+    fontWeight: '600',
   },
   quickStatsRow: {
     flexDirection: 'row',

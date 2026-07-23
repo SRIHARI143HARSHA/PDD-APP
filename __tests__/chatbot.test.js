@@ -52,6 +52,24 @@ describe('Chatbot Module', () => {
   });
 });
 
+describe('Frontend chatbot guidance', () => {
+  it('should provide actionable flood guidance for flood-related questions', async () => {
+    const { askChatbot } = require('../frontend/services/chatbotService');
+    const response = await askChatbot('What should I do during a flood?');
+
+    expect(response.toLowerCase()).toContain('flood');
+    expect(response.toLowerCase()).toContain('higher ground');
+  });
+
+  it('should explain what a flood is for definition questions', async () => {
+    const { askChatbot } = require('../frontend/services/chatbotService');
+    const response = await askChatbot('what is flood');
+
+    expect(response.toLowerCase()).toContain('overflow');
+    expect(response.toLowerCase()).toContain('water');
+  });
+});
+
 describe('Chatbot Safety and Security', () => {
   it('should not expose API key in responses', async () => {
     const chatbot = require('../backend/chatbot');

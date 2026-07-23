@@ -11,6 +11,7 @@ import {
     View,
     useColorScheme,
 } from 'react-native';
+import { courseData } from '../../data/courseData';
 import { db } from '../../database/config';
 import { ThemeContext } from '../context/ThemeContext';
 import { defaultAlerts } from './AlertScreen';
@@ -25,6 +26,49 @@ export default function HomeScreen({ navigation }) {
   const [activeAlertsCount, setActiveAlertsCount] = useState(defaultAlerts.length);
   const [quizzesCompleted, setQuizzesCompleted] = useState(0);
   const [coursesCompleted, setCoursesCompleted] = useState(0);
+  const [preparednessPercent, setPreparednessPercent] = useState(0);
+  const computePreparedness = () => {
+    try {
+      // Courses percent
+      let completedLessonsOverall = 0;
+      let totalLessonsOverall = 0;
+      if (typeof window !== 'undefined' && window.localStorage) {
+        const savedCourses = window.localStorage.getItem('disaster_app_course_progress');
+        const courseMap = savedCourses ? JSON.parse(savedCourses) : {};
+
+        Object.keys(courseData).forEach((key) => {
+          const lessons = Array.isArray(courseData[key]?.lessons) ? courseData[key].lessons.length : 0;
+          totalLessonsOverall += lessons;
+          const completed = (courseMap[key]?.completedLessons || []).length || 0;
+          completedLessonsOverall += completed;
+        });
+      }
+
+      const coursePercent = totalLessonsOverall > 0 ? Math.round((completedLessonsOverall / totalLessonsOverall) * 100) : 0;
+
+      // Quiz percent
+      let quizPercent = 0;
+      if (typeof window !== 'undefined' && window.localStorage) {
+        const savedQuizzes = window.localStorage.getItem('disaster_app_quiz_progress');
+        if (savedQuizzes) {
+          const quizMap = JSON.parse(savedQuizzes);
+          const scores = Object.values(quizMap)
+            .map((q) => (q && typeof q.bestScore === 'number' ? q.bestScore : null))
+            .filter((s) => typeof s === 'number');
+          if (scores.length > 0) {
+            quizPercent = Math.round(scores.reduce((a, b) => a + b, 0) / scores.length);
+          }
+        }
+      }
+
+      // If no progress at all, show 0 and do not auto-update from a hardcoded value.
+      const hasProgress = coursePercent > 0 || quizPercent > 0;
+      const preparedness = hasProgress ? Math.round((coursePercent + quizPercent) / 2) : 0;
+      setPreparednessPercent(preparedness);
+    } catch (e) {
+      setPreparednessPercent(0);
+    }
+  };
 
   useEffect(() => {
     const loadQuizStats = () => {
@@ -63,6 +107,7 @@ export default function HomeScreen({ navigation }) {
       }
     };
 
+
     const loadAlerts = async () => {
       try {
         const querySnapshot = await getDocs(collection(db, 'alerts'));
@@ -74,11 +119,21 @@ export default function HomeScreen({ navigation }) {
 
     loadQuizStats();
     loadCourseStats();
+    computePreparedness();
     loadAlerts();
   }, []);
 
+  useEffect(() => {
+    // Recompute preparedness whenever quiz/course completion counts change
+    computePreparedness();
+  }, [quizzesCompleted, coursesCompleted]);
+
   const stats = [
-    { label: 'Preparedness Score', value: '98%', note: 'Keep going!' },
+    {
+      label: 'Preparedness Score',
+      value: `${preparednessPercent}%`,
+      note: preparednessPercent === 0 ? 'Complete courses & quizzes to update' : 'Keep going!',
+    },
     { label: 'Courses Completed', value: `${coursesCompleted}`, note: 'Keep learning!' },
     { label: 'Active Alerts', value: `${activeAlertsCount}`, note: 'Stay updated!' },
     { label: 'Quizzes Completed', value: `${quizzesCompleted}`, note: 'Great job!' },

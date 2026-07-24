@@ -8,8 +8,24 @@ import { ThemeContext } from '../context/ThemeContext';
 export default function CourseDetailsScreen({ route, navigation }) {
   const theme = useContext(ThemeContext);
   const isDark = theme?.dark ?? false;
-  const { title } = route?.params || { title: 'Flood Safety' };
-  const course = courseData[title] || courseData['Flood Safety'];
+  const course = courseData[title] || {
+    title: title || 'Disaster Safety Course',
+    category: 'SAFETY GUIDELINES',
+    description: 'Learn how to prepare for emergencies, protect property, and evacuate safely.',
+    content: 'Follow official safety guidelines, monitor emergency alerts, and keep survival supplies ready.',
+    image: require('../../assets/images/Disaster.png'),
+    lessons: [
+      {
+        id: 1,
+        title: `${title || 'Safety'} Fundamentals`,
+        content: 'Stay calm, follow local emergency warnings, and keep your 72-hour survival kit ready.',
+        keyRule: 'Always follow official emergency warnings and evacuation orders.',
+        proTip: 'Keep emergency contacts saved on your phone and written on paper.',
+        checklist: ['Prepare 72-hour emergency kit', 'Identify high-ground evacuation routes'],
+        remember: ['Stay informed via official broadcasts', 'Keep family members safe'],
+      },
+    ],
+  };
 
   const lessons = course.lessons || [];
   const [completedLessonIds, setCompletedLessonIds] = useState([]);

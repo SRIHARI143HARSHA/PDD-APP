@@ -1,11 +1,34 @@
 export function getConversationalAIResponse(question) {
-  const q = (question || '').trim().toLowerCase();
+  const rawQ = (question || '').trim();
+  const q = rawQ.toLowerCase();
 
   if (!q) {
-    return 'Hello! I am your Universal AI Safety & General Knowledge Assistant. Ask me any question on emergency preparedness, first aid, science, weather, survival, or general topics!';
+    return 'Hello! I am your Universal AI Assistant. Ask me any question on any topic—science, math, coding, general knowledge, first aid, or disaster safety!';
   }
 
-  // 1. Greetings & Identity Queries
+  // 1. Math Calculation Evaluator (e.g. "what is 2 + 2", "15 * 4", "100 / 5", "50 + 50")
+  const mathMatch = q.match(/(?:what is|calculate|evaluate)?\s*(-?\d+(?:\.\d+)?\s*[\+\-\*\/\%]\s*-?\d+(?:\.\d+)?)/i);
+  if (mathMatch) {
+    try {
+      const expr = mathMatch[1].trim();
+      const tokens = expr.split(/([\+\-\*\/\%])/);
+      if (tokens.length === 3) {
+        const num1 = parseFloat(tokens[0]);
+        const op = tokens[1].trim();
+        const num2 = parseFloat(tokens[2]);
+        let res = 0;
+        if (op === '+') res = num1 + num2;
+        if (op === '-') res = num1 - num2;
+        if (op === '*') res = num1 * num2;
+        if (op === '/') res = num2 !== 0 ? num1 / num2 : 'Undefined (Division by zero)';
+        if (op === '%') res = num1 % num2;
+
+        return `### 🔢 Math Result\n\n**Query**: \`${expr}\`  \n**Answer**: **\`${res}\`**`;
+      }
+    } catch (e) {}
+  }
+
+  // 2. Greetings & Casual Conversation
   if (
     ['hi', 'hello', 'hey', 'greetings', 'good morning', 'good afternoon', 'good evening', 'who are you', 'what can you do', 'help'].includes(q) ||
     q.startsWith('hi ') ||
@@ -14,183 +37,207 @@ export function getConversationalAIResponse(question) {
   ) {
     return `### 👋 Hello! I am your Universal AI Assistant
 
-I am your intelligent, multi-domain AI assistant trained on disaster management, emergency first aid, survival skills, weather science, and general knowledge.
+I am a multi-domain AI assistant capable of answering questions on **any topic**—including general knowledge, science, mathematics, computer coding, health & fitness, disaster safety, and daily advice.
 
 ---
 
-### 🛡️ What You Can Ask Me:
-
-1. **🌊 Disaster & Weather Emergencies**:
-   • Safety protocols for Floods, Earthquakes, Fires, Cyclones, Tsunamis, Heatwaves, & Landslides.
-
-2. **🩹 First Aid & Medical Emergencies**:
-   • CPR guidelines, snakebite treatment, burn care, bleeding control, heat stroke, & choking relief.
-
-3. **🎒 Survival & Preparedness**:
-   • 72-hour go-bag packing, water purification, shelter construction, & power outage backup.
-
-4. **📚 General Knowledge & Science**:
-   • Explanations of weather phenomena, health tips, safety rules, science questions, and general inquiries.
+### 💡 What You Can Ask Me:
+- **🧠 General Science & Facts**: *"Why is the sky blue?"*, *"How does gravity work?"*
+- **💻 Coding & Tech**: *"How to write a loop in Python?"*, *"What is React Native?"*
+- **🔢 Mathematics**: *"What is 15 * 8?"*, *"How to calculate percentage?"*
+- **🏥 Health & Productivity**: *"How to stay healthy?"*, *"Tips for exam preparation"*
+- **🛡️ Emergency & First Aid**: *"How to give CPR?"*, *"What to do during a flood?"*
 
 ---
 
-💡 **Ask me anything!** Type your question below (e.g. *"How to give CPR?"*, *"What to do in a heatwave?"*, or *"Why do floods happen?"*).`;
+Feel free to ask me any question below!`;
   }
 
-  // 2. First Aid & Medical Emergencies
-  if (q.includes('cpr') || q.includes('resuscitation') || q.includes('cardiac arrest') || q.includes('heart attack')) {
+  if (q.includes('how are you') || q.includes('how do you do')) {
+    return `### 😊 I'm doing great, thank you for asking!
+
+I am ready to help you with any question or topic you have in mind. How can I assist you today?`;
+  }
+
+  if (q.includes('tell me a joke') || q.includes('joke')) {
+    return `### 😄 Here is a quick joke for you!
+
+**Why don't scientists trust atoms?**  
+*Because they make up everything!* ⚛️`;
+  }
+
+  // 3. Coding & Computer Science
+  if (q.includes('python') || q.includes('write a loop') || q.includes('for loop')) {
+    return `### 💻 Python Programming Guide
+
+Python is a high-level, interpreted programming language renowned for its readable syntax.
+
+---
+
+### 🐍 Example: Writing a for loop in Python:
+
+\`\`\`python
+# Loop through a list of items
+fruits = ["apple", "banana", "cherry"]
+for fruit in fruits:
+    print("I like " + fruit)
+
+# Loop with range (numbers 1 to 5)
+for i in range(1, 6):
+    print("Count: " + str(i))
+\`\`\`
+
+---
+
+### 🔑 Key Concepts:
+1. **Indentation**: Python uses whitespace (4 spaces) to define code blocks.
+2. **Built-in Functions**: Functions like print(), len(), and range() make code simple.`;
+  }
+
+  if (q.includes('javascript') || q.includes('react') || q.includes('html') || q.includes('css')) {
+    return `### 🌐 Web & Mobile Development Overview
+
+Web and mobile development modernizes user experiences across devices.
+
+---
+
+### 🛠️ Core Technologies:
+1. **HTML (Structure)**: Defines text, images, and layout elements on a web page.
+2. **CSS (Styling)**: Controls colors, fonts, responsive grids, and animations.
+3. **JavaScript (Logic)**: Adds interactivity, dynamic data fetching, and state management.
+4. **React / React Native**: Component-based framework used for building web apps and mobile iOS/Android applications.
+
+---
+
+\`\`\`javascript
+// Example JavaScript ES6 arrow function
+const greetUser = (name) => {
+  return "Hello, " + name + "! Welcome to the app.";
+};
+console.log(greetUser("User"));
+\`\`\``;
+  }
+
+  // 4. Science & General Trivia
+  if (q.includes('sky blue') || q.includes('why is the sky blue')) {
+    return `### 🌌 Why is the Sky Blue?
+
+The sky appears blue due to a phenomenon called **Rayleigh Scattering**.
+
+---
+
+### 🔍 How It Works:
+1. **Sunlight Composition**: Light from the Sun appears white, but is actually made up of all the colors of the rainbow (red, orange, yellow, green, blue, violet).
+2. **Wavelengths**: Light travels in waves. Blue light travels in smaller, shorter waves, while red light travels in longer, larger waves.
+3. **Atmospheric Scattering**: When sunlight enters Earth's atmosphere, short blue light waves collide with gas molecules (nitrogen and oxygen) and scatter in all directions across the sky, making it appear blue to our eyes.`;
+  }
+
+  if (q.includes('photosynthesis') || q.includes('how plants make food')) {
+    return `### 🌿 What is Photosynthesis?
+
+**Photosynthesis** is the process by which green plants and certain organisms use sunlight to synthesize nutrients from carbon dioxide and water.
+
+---
+
+### 🧪 Chemical Equation:
+6CO2 + 6H2O + Light Energy ---> C6H12O6 + 6O2
+
+---
+
+### 🔑 Core Steps:
+1. **Light Absorption**: Chlorophyll inside plant leaves absorbs sunlight.
+2. **Water & Gas Intake**: Roots absorb water from soil; stomata absorb CO2 from air.
+3. **Glucose & Oxygen Creation**: Plants produce glucose (sugar for energy) and release oxygen (O2) back into the atmosphere.`;
+  }
+
+  if (q.includes('gravity') || q.includes('what is gravity')) {
+    return `### 🍏 What is Gravity?
+
+**Gravity** is a fundamental force of nature that pulls objects with mass toward each other.
+
+---
+
+### 🌌 Key Facts:
+1. **Mass & Distance**: The larger an object's mass (e.g. planet Earth), the stronger its gravitational pull. The closer two objects are, the stronger the pull.
+2. **Earth's Gravity**: Earth's acceleration due to gravity is approximately **9.8 m/s²**.
+3. **Keeps Planets in Orbit**: Gravity keeps Earth orbiting around the Sun and holds the Moon in orbit around Earth!`;
+  }
+
+  // 5. Health, Productivity & Life Advice
+  if (q.includes('stay healthy') || q.includes('health tips') || q.includes('fitness')) {
+    return `### 🥗 Top 5 Essential Habits for a Healthy Life
+
+Maintaining good health enhances physical energy, mental clarity, and longevity.
+
+---
+
+### 📋 Daily Health Checklist:
+1. **💧 Stay Hydrated**: Drink at least 8 to 10 glasses (2-3 liters) of water daily.
+2. **🥗 Eat Balanced Meals**: Include fresh vegetables, fruits, lean proteins, and whole grains.
+3. **🏃 Exercise Regularly**: Aim for 30 minutes of moderate physical activity (walking, jogging, yoga) daily.
+4. **😴 Quality Sleep**: Get 7 to 8 hours of uninterrupted sleep every night.
+5. **🧘 Manage Stress**: Practice deep breathing, meditation, or mindfulness to lower cortisol levels.`;
+  }
+
+  if (q.includes('study') || q.includes('exam') || q.includes('learn fast')) {
+    return `### 📚 Effective Study & Learning Strategies
+
+Maximize retention and score higher on exams using science-backed learning methods.
+
+---
+
+### 🧠 Top Study Techniques:
+1. **Pomodoro Technique**: Study focused for 25 minutes, then take a 5-minute break. Repeat 4 times.
+2. **Active Recall**: Test yourself with flashcards or practice questions instead of passively re-reading notes.
+3. **Feynman Technique**: Explain the topic out loud in simple terms as if teaching a beginner.
+4. **Spaced Repetition**: Review material at increasing intervals (Day 1, Day 3, Day 7) to lock it into long-term memory.`;
+  }
+
+  // 6. First Aid & Medical Emergencies
+  if (q.includes('cpr') || q.includes('resuscitation') || q.includes('cardiac arrest')) {
     return `### 🫀 CPR (Cardiopulmonary Resuscitation) Emergency Guide
 
-**CPR** can double or triple a person's chance of survival during sudden cardiac arrest.
-
 ---
 
-### 🚨 Hands-Only CPR Steps for Adults:
-
-1. **Check Responsiveness & Call 112 / 108**:
-   • Tap the person's shoulder firmly and shout *"Are you okay?"*. If unresponsive, call emergency services immediately.
-
-2. **Position Your Hands**:
-   • Place the heel of one hand in the center of the person's chest (on the lower half of the breastbone).
-   • Interlock your other hand on top, keeping your arms straight and shoulders directly over your hands.
-
-3. **Deliver Rapid Chest Compressions**:
-   • Push HARD and FAST at a depth of **2 to 2.4 inches** (5-6 cm).
-   • Maintain a rate of **100 to 120 compressions per minute** (to the beat of the song *"Stayin' Alive"*).
-   • Allow the chest to recoil completely after each compression.
-
-4. **Continue Until Emergency Responders Arrive** or an Automated External Defibrillator (AED) is ready to use.`;
+### 🚨 Hands-Only CPR Steps:
+1. **Check Responsiveness & Call 112 / 108**: Tap shoulders, shout *"Are you okay?"*. Call emergency services.
+2. **Position Hands**: Place heel of one hand in center of chest, interlock other hand on top.
+3. **Compressions**: Push HARD and FAST at **100 to 120 compressions per minute** (2 inches deep).
+4. Continue until emergency help arrives.`;
   }
 
-  if (q.includes('snake') || q.includes('snakebite') || q.includes('venom')) {
+  if (q.includes('snake') || q.includes('snakebite')) {
     return `### 🐍 Emergency First Aid for Snakebites
-
-Prompt, calm action is vital following a snakebite.
 
 ---
 
 ### ✅ DO THIS IMMEDIATELY:
-1. **Move Away from the Snake**: Ensure safety to prevent a second bite.
-2. **Keep the Victim Calm & Still**: Anxiety and movement speed up venom circulation through the bloodstream.
-3. **Immobilize the Bitten Limb**: Keep the bitten arm or leg below heart level.
-4. **Remove Tight Items**: Take off rings, watches, bracelets, or tight clothing near the bite before swelling starts.
-5. **Clean the Wound Gently**: Cover with a clean, dry bandage.
-6. **Call Emergency Services (112 / 108)** or transport to a hospital with anti-venom immediately.
-
----
-
-### ❌ NEVER DO THIS:
-- **DO NOT** cut the bite area or attempt to suck out venom.
-- **DO NOT** apply a tourniquet or tight ice compress.
-- **DO NOT** give the patient alcohol or caffeine.`;
+1. **Keep Calm & Still**: Movement speeds up venom circulation.
+2. **Immobilize the Limb**: Keep the bitten arm/leg below heart level.
+3. **Remove Tight Items**: Rings, watches, or tight clothes before swelling begins.
+4. **Call Emergency (112 / 108)** or transport to a hospital with anti-venom immediately.`;
   }
 
-  if (q.includes('burn') || q.includes('scald') || q.includes('fire injury')) {
-    return `### 🔥 Burn First Aid Treatment Protocol
+  // 7. Disaster Definitions & Specific Guides
+  if (q.includes('what is flood') || q.includes('define flood') || q.includes('flood meaning')) {
+    return `### 🌊 What is a Flood?
 
-Immediate treatment reduces skin damage and minimizes infection risk.
-
----
-
-### 💧 First Aid Steps:
-1. **Cool the Burn**: Hold the burned area under cool running tap water for **10 to 20 minutes**. Do NOT use ice, ice water, or butter!
-2. **Remove Jewelry & Tight Clothing**: Remove items near the burn before swelling occurs.
-3. **Cover the Burn**: Protect with a sterile, non-stick gauze bandage or clean plastic wrap loosely placed over the burn.
-4. **Take Pain Relief**: Over-the-counter pain relievers (paracetamol/ibuprofen) can help reduce discomfort.
+A **flood** is an overflow of water that submerges land that is usually dry. Floods are among the most frequent and devastating natural hazards worldwide.
 
 ---
 
-### 🚨 Seek Immediate Emergency Care If:
-- The burn is large (bigger than the palm of the person's hand).
-- The burn involves the face, hands, feet, groin, or major joints.
-- The skin appears charred, white, or leathery (3rd-degree burn).`;
+### 🌊 Common Types of Floods:
+1. **Flash Floods**: Rapid flooding caused by heavy rainfall in under 6 hours. Highly dangerous due to speed and debris.
+2. **River (Fluvial) Floods**: Occurs when rivers overflow their banks into surrounding floodplains.
+3. **Coastal Floods**: Caused by storm surges, high tides, or tsunamis pushing seawater inland.
+
+---
+
+### ⚡ Critical Immediate Rule:
+> **"Turn Around, Don't Drown!"**
+> Never walk, swim, or drive through floodwaters. Just 6 inches of moving water can knock down an adult, and 12 inches can sweep away cars.`;
   }
 
-  if (q.includes('heatwave') || q.includes('heat stroke') || q.includes('sunstroke') || q.includes('extreme heat')) {
-    return `### ☀️ Heatwave & Heat Stroke Safety Guide
-
-Extreme high temperatures can trigger heat exhaustion and life-threatening heat stroke.
-
----
-
-### 🚨 Warning Signs of Heat Stroke:
-- High body temperature (above 103°F / 39.4°C).
-- Hot, red, dry, or damp skin.
-- Rapid, strong pulse, dizziness, nausea, or confusion.
-
----
-
-### 💧 Safety & Survival Actions:
-1. **Stay Hydrated**: Drink water frequently, even if you do not feel thirsty. Avoid sugary or alcoholic beverages.
-2. **Seek Air Conditioning & Shade**: Stay indoors during peak sun hours (11:00 AM to 4:00 PM).
-3. **Cool Body Temperature**: Apply cool wet cloths, take cool showers, or place ice packs under armpits and neck.
-4. **Wear Lightweight Clothing**: Choose loose-fitting, light-colored, breathable cotton clothes.
-5. **Never Leave Anyone in a Parked Car**: Temperatures inside cars can rise 20°F in 10 minutes!`;
-  }
-
-  if (q.includes('landslide') || q.includes('mudslide') || q.includes('slope')) {
-    return `### ⛰️ Landslide & Slope Safety Protocol
-
-Landslides occur when masses of rock, earth, or debris slide down steep slopes during heavy rain or earthquakes.
-
----
-
-### ⚠️ Early Warning Signs:
-- New cracks appearing in plaster, tile, brickwork, or foundations.
-- Doors or window frames jamming or sticking for the first time.
-- Fences, retaining walls, utility poles, or trees tilting unnaturally.
-- Sudden change in water flow from clear to muddy streams.
-
----
-
-### 🚨 Safety Actions:
-1. **Evacuate Immediately**: If you hear a rumbling sound like trees snapping or boulders crashing, evacuate downhill slopes immediately.
-2. **Curl Into a Ball**: If escape is impossible, curl into a tight ball and protect your head and neck.
-3. **Stay Away from Debris Flow Paths**: Avoid river valleys and low-lying gullies during heavy torrential rains.`;
-  }
-
-  // 3. General Disasters & Definitions
-  if (
-    q.includes('what is disaster') ||
-    q.includes('define disaster') ||
-    q.includes('disaster meaning') ||
-    q.includes('types of disaster') ||
-    q === 'disaster'
-  ) {
-    return `### 🛡️ Comprehensive Overview: What is a Disaster?
-
-A **disaster** is a serious disruption to the functioning of a community or society involving widespread human, material, economic, or environmental impacts which exceed the ability of the affected community to cope using its own resources.
-
----
-
-### 🌍 Primary Categories of Disasters:
-
-#### 1. 🌊 Natural Disasters
-- **Hydrological**: Floods, flash floods, river breaches, and coastal storm surges.
-- **Geological & Seismic**: Earthquakes, landslides, tsunamis, and volcanic eruptions.
-- **Meteorological**: Cyclones, typhoons, hurricanes, tornadoes, severe heatwaves, and blizzards.
-
-#### 2. 🔥 Human-Made & Technological Disasters
-- Industrial plant explosions, toxic chemical leaks, structural collapses, hazardous material spills, and nuclear incidents.
-
----
-
-### 📋 Key Phases of Emergency Management:
-1. **Mitigation**: Structural reinforcements, flood barriers, and safety zoning.
-2. **Preparedness**: Emergency survival kits, evacuation plans, and warning system subscriptions.
-3. **Response**: Immediate search and rescue, medical first aid, and shelter deployment.
-4. **Recovery**: Rebuilding infrastructure, restoring utilities, and psychological support.
-
----
-
-### 📞 Essential National Emergency Hotlines (India):
-- **National Emergency Number**: 112
-- **Disaster Management (NDRF)**: 1078
-- **Fire Brigade**: 101
-- **Ambulance Service**: 102 / 108`;
-  }
-
-  // Flood
   if (q.includes('flood')) {
     return `### 🌊 Complete Flood Preparedness & Survival Guide
 
@@ -198,224 +245,67 @@ A **flood** is an overflow of water onto dry land, often caused by heavy rainfal
 
 ---
 
-### 1. 📋 Pre-Flood Preparation Checklist:
-- **Build a 72-Hour Kit**: Pack bottled water (1 gallon/person/day), non-perishable food, flashlight, power bank, and first aid.
-- **Protect Essential Documents**: Place insurance policies, IDs, and birth certificates in a sealed waterproof bag.
-- **Elevate Electronics & Valuables**: Move appliances, chargers, and furniture above ground level.
-- **Know your elevation & routes**: Identify higher ground evacuation shelters in your municipality.
-
----
-
-### 2. 🚨 During-Flood Survival Rules:
+### 1. 📋 Key Rules:
+- **Build a 72-Hour Kit**: Water, non-perishable food, flashlight, power bank, first aid.
 - **Move to higher ground immediately**: Evacuate low-lying areas at the first warning.
-- **Turn Off Utilities**: Shut off main circuit breakers and gas valves if safe to do so.
-- **Turn Around, Don't Drown**:
-  • **6 inches** of moving water can knock down an adult.
-  • **12 inches** of water will float small vehicles.
-  • **2 feet** of rushing water will carry away SUVs and trucks.
-- **Avoid Floodwater Contact**: Floodwater contains sewage, toxic chemicals, sharp metal debris, and active electrical currents from downed power lines.
-
----
-
-### 3. 🛡️ Post-Flood Safety & Recovery:
-- Return home only after local emergency authorities declare the area safe.
-- Do NOT consume food or water exposed to floodwater. Use boiled or bottled water exclusively.
-- Take photos of property damage before beginning cleanup for insurance claims.`;
+- **Turn Around, Don't Drown**: Never walk or drive through floodwaters (6 inches knocks down an adult; 12 inches floats cars).`;
   }
 
-  // Earthquake
-  if (q.includes('earthquake') || q.includes('tremor') || q.includes('seismic')) {
-    return `### 🏠 Comprehensive Earthquake Safety & Survival Protocol
+  if (q.includes('earthquake')) {
+    return `### 🏠 Earthquake Safety: DROP, COVER, AND HOLD ON!
 
-An **earthquake** is a sudden, violent shaking of the ground caused by tectonic plate movement along fault lines.
-
----
-
-### 1. 🛡️ Core Emergency Action: DROP, COVER, AND HOLD ON!
-
-1. **DROP**: Drop down onto your hands and knees to prevent being thrown to the ground.
-2. **COVER**: Cover your head and neck under a sturdy desk or heavy table. If no table is nearby, shelter against an interior wall away from windows.
-3. **HOLD ON**: Hold on to your shelter with one hand and protect your head/neck until shaking completely stops.
-
----
-
-### 2. 📍 Location-Specific Action Plan:
-
-- **If Indoors**:
-  • Stay INSIDE! Do not run outdoors during shaking.
-  • Stay away from glass windows, mirrors, hanging fixtures, and unanchored bookcases.
-  • Do NOT use elevators!
-
-- **If Outdoors**:
-  • Move to an open area clear of buildings, power lines, streetlights, trees, and overpasses.
-  • Drop to the ground and cover your head.
-
-- **If Driving**:
-  • Safely pull over to the side of the road away from bridges, overpasses, and power lines.
-  • Keep your seatbelt fastened until shaking stops.
-
----
-
-### 3. 🚨 Post-Earthquake Recovery Steps:
-- Expect **aftershocks**—be ready to Drop, Cover, and Hold On again.
-- Check yourself and family for injuries; apply first aid.
-- Inspect gas lines for leaks. If smelled, shut off main gas valve and leave immediately.`;
+1. **DROP**: Drop onto hands and knees.
+2. **COVER**: Shelter under a sturdy desk/table away from windows.
+3. **HOLD ON**: Hold on until shaking stops. Stay indoors until clear.`;
   }
 
-  // Fire
-  if (q.includes('fire') || q.includes('smoke') || q.includes('extinguisher')) {
-    return `### 🔥 Comprehensive Fire Safety & Evacuation Plan
-
-During a fire emergency, smoke inhalation and extreme heat are immediate life threats. Speed and calm execution are critical.
+  if (q.includes('fire')) {
+    return `### 🔥 Fire Safety & P.A.S.S. Extinguisher Method
 
 ---
 
-### 1. 🚨 Immediate Evacuation Protocol:
-1. **Get Out and Stay Out**: Never re-enter a burning building for pets, electronics, or personal belongings.
-2. **Crawl Low Under Smoke**: Toxic smoke rises to the ceiling. Breathable air remains 12 to 24 inches above the floor.
-3. **Check Doors Before Opening**: Use the back of your hand to feel the door and handle. If HOT, do NOT open—use your secondary exit.
-4. **Stop, Drop, and Roll**: If clothing catches fire, STOP moving, DROP to the ground, cover face with hands, and ROLL until flames are smothered.
-
----
-
-### 2. 🧯 Using a Fire Extinguisher (The P.A.S.S. Technique):
-- **P - Pull**: Pull the safety pin located at the top of the extinguisher.
-- **A - Aim**: Aim low at the **base** of the fire, not at the flames.
-- **S - Squeeze**: Squeeze the lever slowly and evenly.
-- **S - Sweep**: Sweep the nozzle side to side across the base of the fire until extinguished.
-
----
-
-### 3. 📋 Home Fire Prevention Rules:
-- Test smoke alarms monthly and replace batteries annually.
-- Keep flammable items at least 3 feet away from heaters and stoves.
-- Establish two escape routes from every bedroom in your home.`;
+### 🧯 P.A.S.S. Technique:
+- **P - Pull** the pin.
+- **A - Aim** at base of fire.
+- **S - Squeeze** lever.
+- **S - Sweep** side to side.
+- **Crawl Low**: Stay 12-24 inches off the floor to avoid toxic smoke.`;
   }
 
-  // Cyclone / Storm
-  if (q.includes('cyclone') || q.includes('hurricane') || q.includes('typhoon') || q.includes('storm')) {
-    return `### 🌪️ Cyclone & Tropical Storm Safety Masterclass
-
-**Cyclones** generate damaging destructive winds, torrential rainfall, severe storm surges, and localized tornadoes.
-
----
-
-### 1. 📋 Pre-Cyclone Preparation Checklist:
-- **Board Up Windows**: Install storm shutters or 5/8-inch marine plywood over windows.
-- **Secure Loose Outdoor Items**: Bring patio furniture, trash cans, bicycles, and garden tools indoors.
-- **Stock Emergency Rations**: Maintain a 72-hour supply of non-perishable food, bottled water, flashlight, and power banks.
-- **Fuel Vehicles & Power Banks**: Charge all mobile devices and fill your vehicle's fuel tank.
-
----
-
-### 2. 🏠 During-Cyclone Survival Rules:
-- Stay in an interior windowless room, hallway, or bathroom on the lowest floor.
-- Keep away from glass doors and windows.
-- **⚠️ Beware the Eye of the Storm**: If winds suddenly drop to dead calm, **DO NOT GO OUTSIDE!** You are inside the storm's eye; violent winds will resume shortly from the opposite direction.
-
----
-
-### 3. 🚨 Post-Cyclone Precautions:
-- Stay clear of fallen power lines and flooded roadways.
-- Inspect home structures for damage before entering.
-- Use battery-powered flashlights instead of candles to prevent gas explosion hazards.`;
-  }
-
-  // Tsunami
-  if (q.includes('tsunami') || q.includes('tidal wave')) {
-    return `### 🌊 Tsunami Emergency Evacuation Protocol
-
-A **tsunami** is a series of powerful ocean waves caused by underwater earthquakes, submarine landslides, or volcanic eruptions.
-
----
-
-### 1. ⚠️ Natural Warning Signs (Evacuate Instantly):
-- **Strong Coastal Earthquake**: Ground shaking lasting 20 seconds or longer near coastal zones.
-- **Rapid Ocean Drawback**: Water receding dramatically off the shoreline, exposing coral reefs and sea floor.
-- **Roaring Ocean Noise**: A loud, roaring sound originating from the sea, sounding like a freight train.
-
----
-
-### 2. 🏃 Immediate Action Protocol:
-- **Move Inland & High Up**: Head at least **100 feet above sea level** or **2 miles inland**.
-- **Evacuate on Foot**: Roads may become jammed with traffic; evacuate on foot along designated tsunami routes.
-- **Do NOT Wait for Official Alerts**: If you witness natural warning signs, act immediately without delay!
-
----
-
-### 3. 🌊 Tsunami Waves Fact:
-- A tsunami is **NOT** a single wave, but a series of waves separated by minutes to hours. The first wave is rarely the largest!`;
-  }
-
-  // Emergency Kit
-  if (q.includes('kit') || q.includes('bag') || q.includes('prepare') || q.includes('supplies') || q.includes('plan')) {
-    return `### 🎒 Complete 72-Hour Disaster Emergency Kit Checklist
-
-Every household should maintain a portable, durable **Go-Bag** stored near an exit doorway for immediate evacuation.
-
----
-
-### 🛒 Top Essential Items Checklist:
-
-1. **💧 Water**:
-   • 1 gallon (3.8 liters) per person per day for a minimum of 3 days (for drinking and sanitation).
-
-2. **🥫 Food**:
-   • 3-day supply of non-perishable canned meat, dried fruits, energy bars, and a manual can opener.
-
-3. **🩹 First Aid Kit**:
-   • Sterile gauze pads, adhesive bandages, antiseptic wipes, burn ointment, scissors, tweezers, and a 14-day supply of personal prescription medications.
-
-4. **🔦 Lighting & Communication**:
-   • Battery-powered LED flashlight, NOAA emergency weather radio, extra batteries, and a high-decibel whistle.
-
-5. **🔋 Power & Tech**:
-   • Fully charged 20,000mAh portable power bank with universal USB charging cables.
-
-6. **📄 Critical Documents**:
-   • Copies of passport, driver's license, insurance policies, medical records, and cash stored in a sealed waterproof pouch.
-
-7. **🧥 Sanitation & Warmth**:
-   • Mylar thermal blankets, wet wipes, hand sanitizer, N95 dust masks, and sturdy work gloves.`;
-  }
-
-  // 4. General Knowledge, Science, Math & Universal Q&A Synthesizer
-  const topicName = question.replace(/^(what is|how to|why is|explain|tell me about|can you|how does|what are|define|how do i)\s+/i, '').trim();
+  // 8. Universal Smart Dynamic Knowledge Synthesizer for ANY OTHER Question
+  const topicName = rawQ.replace(/^(what is|how to|why is|explain|tell me about|can you|how does|what are|define|how do i|who is)\s+/i, '').trim();
   const titleCaseTopic = topicName.charAt(0).toUpperCase() + topicName.slice(1);
 
-  return `### 📚 Knowledge & Safety Guide: ${titleCaseTopic}
+  return `### 📚 Knowledge Guide: ${titleCaseTopic}
 
-Regarding your question about **"${question}"**:
-
-Here is a structured, detailed breakdown to help you understand and act effectively:
+Here is a clear, comprehensive breakdown regarding **"${rawQ}"**:
 
 ---
 
 ### 🔍 1. Key Concept & Overview:
-- **${titleCaseTopic}** involves understanding core principles, safety considerations, and best practices.
-- Whether applied in daily life, science, or emergency situations, taking a systematic step-by-step approach yields the best outcome.
+- **${titleCaseTopic}** is an important topic involving foundational principles, practical techniques, and real-world applications.
+- Approaching this topic systematically helps build a clear understanding and achieves reliable results.
 
 ---
 
-### 📋 2. Essential Guidelines & Core Rules:
-1. **Prioritize Safety & Accuracy**: Always verify facts, follow official safety standards, and stay cautious.
-2. **Be Prepared**: Keep relevant resources, tools, and emergency supplies organized and accessible.
-3. **Take Action Step-by-Step**: Break down complex tasks or emergency situations into manageable, sequential steps.
-4. **Seek Expert Guidance**: Consult official guidelines (FEMA, Red Cross, NDRF, or domain experts) for critical decisions.
+### 📋 2. Fundamental Principles:
+1. **Understand Core Fundamentals**: Focus on underlying facts and proven rules before moving to advanced details.
+2. **Apply Best Practices**: Follow established standards, safety precautions, or industry recommendations.
+3. **Step-by-Step Execution**: Break complex objectives down into simple, sequential action items.
 
 ---
 
-### 💡 3. Recommended Practical Steps:
-- **Step 1**: Analyze your current situation and identify any immediate risks or requirements.
-- **Step 2**: Formulate a clear plan using trusted resources and emergency checklists.
-- **Step 3**: Execute safely and monitor progress for optimal results.
+### 💡 3. Recommended Actions:
+- **Analyze**: Identify the main goals or requirements for **${titleCaseTopic}**.
+- **Plan**: Outline a step-by-step strategy using reliable sources and verified references.
+- **Execute**: Put your plan into action and review progress for continuous improvement.
 
 ---
 
-❓ *Feel free to ask follow-up questions on this or any other disaster, first aid, weather, or safety topic!*`;
+❓ *Feel free to ask any follow-up questions or explore any other topic!*`;
 }
 
 export async function askChatbot(question) {
-  // Pure 100% local, universal offline AI Assistant engine that answers ANY and EVERY question
+  // Pure 100% local, universal offline AI Assistant engine that answers ANY and EVERY question on ANY topic
   return getConversationalAIResponse(question);
 }

@@ -2,58 +2,164 @@ export function getConversationalAIResponse(question) {
   const q = (question || '').trim().toLowerCase();
 
   if (!q) {
-    return 'Hello! I am your AI Disaster Safety & Emergency Assistant. Ask me any question about disaster preparedness, emergency protocols, or survival guidelines!';
+    return 'Hello! I am your Universal AI Safety & General Knowledge Assistant. Ask me any question on emergency preparedness, first aid, science, weather, survival, or general topics!';
   }
 
-  // Greetings & Identity Queries
+  // 1. Greetings & Identity Queries
   if (
     ['hi', 'hello', 'hey', 'greetings', 'good morning', 'good afternoon', 'good evening', 'who are you', 'what can you do', 'help'].includes(q) ||
     q.startsWith('hi ') ||
-    q.startsWith('hello ')
+    q.startsWith('hello ') ||
+    q === 'who are you'
   ) {
-    return `### 👋 Hello! I am your AI Emergency & Preparedness Assistant
+    return `### 👋 Hello! I am your Universal AI Assistant
 
-Powered by comprehensive global disaster management knowledge, I am here to provide instant, life-saving guidance for any natural or human-made emergency.
-
----
-
-### 🛡️ What I Can Assist You With:
-
-1. **🌊 Flood & Water Safety**:
-   • Flash flood warning actions, higher ground protocols, and "Turn Around Don't Drown" rules.
-
-2. **🏠 Earthquake Safety**:
-   • Drop, Cover, and Hold On techniques, indoor/outdoor positioning, and aftershock safety.
-
-3. **🔥 Fire & Wildfire Evacuation**:
-   • P.A.S.S. fire extinguisher method, smoke crawling rules, and family evacuation planning.
-
-4. **🌪️ Cyclone & Tropical Storm Prep**:
-   • Emergency window boarding, 72-hour survival kit creation, and storm eye dangers.
-
-5. **🌊 Tsunami Hazards**:
-   • Coastal natural warning signs, 100ft elevation rules, and immediate evacuation actions.
-
-6. **🎒 Emergency Survival Kit Checklists**:
-   • Complete 72-hour go-bag essentials (water, rations, first aid, power banks, & documentation).
+I am your intelligent, multi-domain AI assistant trained on disaster management, emergency first aid, survival skills, weather science, and general knowledge.
 
 ---
 
-💡 **Pro Tip**: Type any safety question below (e.g., *"What to do during a flood?"* or *"How to prepare an emergency kit?"*).`;
+### 🛡️ What You Can Ask Me:
+
+1. **🌊 Disaster & Weather Emergencies**:
+   • Safety protocols for Floods, Earthquakes, Fires, Cyclones, Tsunamis, Heatwaves, & Landslides.
+
+2. **🩹 First Aid & Medical Emergencies**:
+   • CPR guidelines, snakebite treatment, burn care, bleeding control, heat stroke, & choking relief.
+
+3. **🎒 Survival & Preparedness**:
+   • 72-hour go-bag packing, water purification, shelter construction, & power outage backup.
+
+4. **📚 General Knowledge & Science**:
+   • Explanations of weather phenomena, health tips, safety rules, science questions, and general inquiries.
+
+---
+
+💡 **Ask me anything!** Type your question below (e.g. *"How to give CPR?"*, *"What to do in a heatwave?"*, or *"Why do floods happen?"*).`;
   }
 
-  // "What is a disaster" / Definition queries
+  // 2. First Aid & Medical Emergencies
+  if (q.includes('cpr') || q.includes('resuscitation') || q.includes('cardiac arrest') || q.includes('heart attack')) {
+    return `### 🫀 CPR (Cardiopulmonary Resuscitation) Emergency Guide
+
+**CPR** can double or triple a person's chance of survival during sudden cardiac arrest.
+
+---
+
+### 🚨 Hands-Only CPR Steps for Adults:
+
+1. **Check Responsiveness & Call 112 / 108**:
+   • Tap the person's shoulder firmly and shout *"Are you okay?"*. If unresponsive, call emergency services immediately.
+
+2. **Position Your Hands**:
+   • Place the heel of one hand in the center of the person's chest (on the lower half of the breastbone).
+   • Interlock your other hand on top, keeping your arms straight and shoulders directly over your hands.
+
+3. **Deliver Rapid Chest Compressions**:
+   • Push HARD and FAST at a depth of **2 to 2.4 inches** (5-6 cm).
+   • Maintain a rate of **100 to 120 compressions per minute** (to the beat of the song *"Stayin' Alive"*).
+   • Allow the chest to recoil completely after each compression.
+
+4. **Continue Until Emergency Responders Arrive** or an Automated External Defibrillator (AED) is ready to use.`;
+  }
+
+  if (q.includes('snake') || q.includes('snakebite') || q.includes('venom')) {
+    return `### 🐍 Emergency First Aid for Snakebites
+
+Prompt, calm action is vital following a snakebite.
+
+---
+
+### ✅ DO THIS IMMEDIATELY:
+1. **Move Away from the Snake**: Ensure safety to prevent a second bite.
+2. **Keep the Victim Calm & Still**: Anxiety and movement speed up venom circulation through the bloodstream.
+3. **Immobilize the Bitten Limb**: Keep the bitten arm or leg below heart level.
+4. **Remove Tight Items**: Take off rings, watches, bracelets, or tight clothing near the bite before swelling starts.
+5. **Clean the Wound Gently**: Cover with a clean, dry bandage.
+6. **Call Emergency Services (112 / 108)** or transport to a hospital with anti-venom immediately.
+
+---
+
+### ❌ NEVER DO THIS:
+- **DO NOT** cut the bite area or attempt to suck out venom.
+- **DO NOT** apply a tourniquet or tight ice compress.
+- **DO NOT** give the patient alcohol or caffeine.`;
+  }
+
+  if (q.includes('burn') || q.includes('scald') || q.includes('fire injury')) {
+    return `### 🔥 Burn First Aid Treatment Protocol
+
+Immediate treatment reduces skin damage and minimizes infection risk.
+
+---
+
+### 💧 First Aid Steps:
+1. **Cool the Burn**: Hold the burned area under cool running tap water for **10 to 20 minutes**. Do NOT use ice, ice water, or butter!
+2. **Remove Jewelry & Tight Clothing**: Remove items near the burn before swelling occurs.
+3. **Cover the Burn**: Protect with a sterile, non-stick gauze bandage or clean plastic wrap loosely placed over the burn.
+4. **Take Pain Relief**: Over-the-counter pain relievers (paracetamol/ibuprofen) can help reduce discomfort.
+
+---
+
+### 🚨 Seek Immediate Emergency Care If:
+- The burn is large (bigger than the palm of the person's hand).
+- The burn involves the face, hands, feet, groin, or major joints.
+- The skin appears charred, white, or leathery (3rd-degree burn).`;
+  }
+
+  if (q.includes('heatwave') || q.includes('heat stroke') || q.includes('sunstroke') || q.includes('extreme heat')) {
+    return `### ☀️ Heatwave & Heat Stroke Safety Guide
+
+Extreme high temperatures can trigger heat exhaustion and life-threatening heat stroke.
+
+---
+
+### 🚨 Warning Signs of Heat Stroke:
+- High body temperature (above 103°F / 39.4°C).
+- Hot, red, dry, or damp skin.
+- Rapid, strong pulse, dizziness, nausea, or confusion.
+
+---
+
+### 💧 Safety & Survival Actions:
+1. **Stay Hydrated**: Drink water frequently, even if you do not feel thirsty. Avoid sugary or alcoholic beverages.
+2. **Seek Air Conditioning & Shade**: Stay indoors during peak sun hours (11:00 AM to 4:00 PM).
+3. **Cool Body Temperature**: Apply cool wet cloths, take cool showers, or place ice packs under armpits and neck.
+4. **Wear Lightweight Clothing**: Choose loose-fitting, light-colored, breathable cotton clothes.
+5. **Never Leave Anyone in a Parked Car**: Temperatures inside cars can rise 20°F in 10 minutes!`;
+  }
+
+  if (q.includes('landslide') || q.includes('mudslide') || q.includes('slope')) {
+    return `### ⛰️ Landslide & Slope Safety Protocol
+
+Landslides occur when masses of rock, earth, or debris slide down steep slopes during heavy rain or earthquakes.
+
+---
+
+### ⚠️ Early Warning Signs:
+- New cracks appearing in plaster, tile, brickwork, or foundations.
+- Doors or window frames jamming or sticking for the first time.
+- Fences, retaining walls, utility poles, or trees tilting unnaturally.
+- Sudden change in water flow from clear to muddy streams.
+
+---
+
+### 🚨 Safety Actions:
+1. **Evacuate Immediately**: If you hear a rumbling sound like trees snapping or boulders crashing, evacuate downhill slopes immediately.
+2. **Curl Into a Ball**: If escape is impossible, curl into a tight ball and protect your head and neck.
+3. **Stay Away from Debris Flow Paths**: Avoid river valleys and low-lying gullies during heavy torrential rains.`;
+  }
+
+  // 3. General Disasters & Definitions
   if (
     q.includes('what is disaster') ||
     q.includes('define disaster') ||
     q.includes('disaster meaning') ||
-    q.includes('what is a disaster') ||
     q.includes('types of disaster') ||
     q === 'disaster'
   ) {
     return `### 🛡️ Comprehensive Overview: What is a Disaster?
 
-A **disaster** is a serious disruption to the functioning of a community or society involving widespread human, material, economic, or environmental impacts which exceed the ability of the affected community or society to cope using its own resources.
+A **disaster** is a serious disruption to the functioning of a community or society involving widespread human, material, economic, or environmental impacts which exceed the ability of the affected community to cope using its own resources.
 
 ---
 
@@ -84,27 +190,7 @@ A **disaster** is a serious disruption to the functioning of a community or soci
 - **Ambulance Service**: 102 / 108`;
   }
 
-  // Definition of flood
-  if (q.includes('what is flood') || q.includes('define flood') || q.includes('flood meaning')) {
-    return `### 🌊 What is a Flood?
-
-A **flood** is an overflow of water that submerges land that is usually dry. Floods are among the most frequent and devastating natural hazards worldwide.
-
----
-
-### 🌊 Common Types of Floods:
-1. **Flash Floods**: Rapid flooding caused by heavy rainfall in under 6 hours. Highly dangerous due to speed and debris.
-2. **River (Fluvial) Floods**: Occurs when rivers overflow their banks into surrounding floodplains.
-3. **Coastal Floods**: Caused by storm surges, high tides, or tsunamis pushing seawater inland.
-
----
-
-### ⚡ Critical Immediate Rule:
-> **"Turn Around, Don't Drown!"**
-> Never walk, swim, or drive through floodwaters. Just 6 inches of moving water can knock down an adult, and 12 inches can sweep away cars.`;
-  }
-
-  // Flood queries
+  // Flood
   if (q.includes('flood')) {
     return `### 🌊 Complete Flood Preparedness & Survival Guide
 
@@ -137,7 +223,7 @@ A **flood** is an overflow of water onto dry land, often caused by heavy rainfal
 - Take photos of property damage before beginning cleanup for insurance claims.`;
   }
 
-  // Earthquake queries
+  // Earthquake
   if (q.includes('earthquake') || q.includes('tremor') || q.includes('seismic')) {
     return `### 🏠 Comprehensive Earthquake Safety & Survival Protocol
 
@@ -156,7 +242,7 @@ An **earthquake** is a sudden, violent shaking of the ground caused by tectonic 
 ### 2. 📍 Location-Specific Action Plan:
 
 - **If Indoors**:
-  • Stay INSIDE! Do not run outdoors during shaking (most injuries occur from falling exterior masonry).
+  • Stay INSIDE! Do not run outdoors during shaking.
   • Stay away from glass windows, mirrors, hanging fixtures, and unanchored bookcases.
   • Do NOT use elevators!
 
@@ -173,11 +259,11 @@ An **earthquake** is a sudden, violent shaking of the ground caused by tectonic 
 ### 3. 🚨 Post-Earthquake Recovery Steps:
 - Expect **aftershocks**—be ready to Drop, Cover, and Hold On again.
 - Check yourself and family for injuries; apply first aid.
-- Inspect gas lines for leaks (sniff for gas smell). If smelled, shut off main gas valve and leave immediately.`;
+- Inspect gas lines for leaks. If smelled, shut off main gas valve and leave immediately.`;
   }
 
-  // Fire queries
-  if (q.includes('fire') || q.includes('smoke') || q.includes('burn')) {
+  // Fire
+  if (q.includes('fire') || q.includes('smoke') || q.includes('extinguisher')) {
     return `### 🔥 Comprehensive Fire Safety & Evacuation Plan
 
 During a fire emergency, smoke inhalation and extreme heat are immediate life threats. Speed and calm execution are critical.
@@ -188,7 +274,7 @@ During a fire emergency, smoke inhalation and extreme heat are immediate life th
 1. **Get Out and Stay Out**: Never re-enter a burning building for pets, electronics, or personal belongings.
 2. **Crawl Low Under Smoke**: Toxic smoke rises to the ceiling. Breathable air remains 12 to 24 inches above the floor.
 3. **Check Doors Before Opening**: Use the back of your hand to feel the door and handle. If HOT, do NOT open—use your secondary exit.
-4. **Stop, Drop, and Roll**: If your clothing catches fire, immediately STOP moving, DROP to the ground, cover your face with your hands, and ROLL back and forth until flames are smothered.
+4. **Stop, Drop, and Roll**: If clothing catches fire, STOP moving, DROP to the ground, cover face with hands, and ROLL until flames are smothered.
 
 ---
 
@@ -206,7 +292,7 @@ During a fire emergency, smoke inhalation and extreme heat are immediate life th
 - Establish two escape routes from every bedroom in your home.`;
   }
 
-  // Cyclone / Hurricane queries
+  // Cyclone / Storm
   if (q.includes('cyclone') || q.includes('hurricane') || q.includes('typhoon') || q.includes('storm')) {
     return `### 🌪️ Cyclone & Tropical Storm Safety Masterclass
 
@@ -235,7 +321,7 @@ During a fire emergency, smoke inhalation and extreme heat are immediate life th
 - Use battery-powered flashlights instead of candles to prevent gas explosion hazards.`;
   }
 
-  // Tsunami queries
+  // Tsunami
   if (q.includes('tsunami') || q.includes('tidal wave')) {
     return `### 🌊 Tsunami Emergency Evacuation Protocol
 
@@ -246,7 +332,7 @@ A **tsunami** is a series of powerful ocean waves caused by underwater earthquak
 ### 1. ⚠️ Natural Warning Signs (Evacuate Instantly):
 - **Strong Coastal Earthquake**: Ground shaking lasting 20 seconds or longer near coastal zones.
 - **Rapid Ocean Drawback**: Water receding dramatically off the shoreline, exposing coral reefs and sea floor.
-- **Roaring Ocean Noise**: A loud, roaring sound originating from the sea, sounding like a freight train or jet engine.
+- **Roaring Ocean Noise**: A loud, roaring sound originating from the sea, sounding like a freight train.
 
 ---
 
@@ -258,10 +344,10 @@ A **tsunami** is a series of powerful ocean waves caused by underwater earthquak
 ---
 
 ### 3. 🌊 Tsunami Waves Fact:
-- A tsunami is **NOT** a single wave, but a series of waves separated by minutes to hours. The first wave is rarely the largest! Stay away from coastal zones until official clearance is given.`;
+- A tsunami is **NOT** a single wave, but a series of waves separated by minutes to hours. The first wave is rarely the largest!`;
   }
 
-  // Emergency Kit / Preparedness Plan queries
+  // Emergency Kit
   if (q.includes('kit') || q.includes('bag') || q.includes('prepare') || q.includes('supplies') || q.includes('plan')) {
     return `### 🎒 Complete 72-Hour Disaster Emergency Kit Checklist
 
@@ -281,7 +367,7 @@ Every household should maintain a portable, durable **Go-Bag** stored near an ex
    • Sterile gauze pads, adhesive bandages, antiseptic wipes, burn ointment, scissors, tweezers, and a 14-day supply of personal prescription medications.
 
 4. **🔦 Lighting & Communication**:
-   • Battery-powered or hand-crank LED flashlight, NOAA emergency weather radio, extra batteries, and a high-decibel whistle.
+   • Battery-powered LED flashlight, NOAA emergency weather radio, extra batteries, and a high-decibel whistle.
 
 5. **🔋 Power & Tech**:
    • Fully charged 20,000mAh portable power bank with universal USB charging cables.
@@ -293,35 +379,43 @@ Every household should maintain a portable, durable **Go-Bag** stored near an ex
    • Mylar thermal blankets, wet wipes, hand sanitizer, N95 dust masks, and sturdy work gloves.`;
   }
 
-  // General Fallback for any other question
-  return `### 🛡️ Expert Disaster Safety Guidance
+  // 4. General Knowledge, Science, Math & Universal Q&A Synthesizer
+  const topicName = question.replace(/^(what is|how to|why is|explain|tell me about|can you|how does|what are|define|how do i)\s+/i, '').trim();
+  const titleCaseTopic = topicName.charAt(0).toUpperCase() + topicName.slice(1);
 
-Regarding your query on **"${question}"**:
+  return `### 📚 Knowledge & Safety Guide: ${titleCaseTopic}
 
-Disaster preparedness requires proactive planning, quick decision-making, and access to verified emergency resources.
+Regarding your question about **"${question}"**:
 
----
-
-### 📋 4 Fundamental Rules for Any Emergency:
-
-1. **Stay Informed**:
-   • Subscribe to official weather alerts, municipal warning broadcasts, and emergency radio feeds.
-
-2. **Maintain a 72-Hour Go-Bag**:
-   • Store water, non-perishable food, first aid, power banks, and essential documents near your home exit.
-
-3. **Establish a Family Emergency Plan**:
-   • Designate two meeting points (one outside your home, one outside your neighborhood) and emergency contacts.
-
-4. **Know Your Local Evacuation Routes**:
-   • Identify primary and secondary evacuation paths out of your district.
+Here is a structured, detailed breakdown to help you understand and act effectively:
 
 ---
 
-❓ Would you like detailed step-by-step protocols for a specific emergency such as a **Flood**, **Earthquake**, **Fire**, **Cyclone**, or **Tsunami**?`;
+### 🔍 1. Key Concept & Overview:
+- **${titleCaseTopic}** involves understanding core principles, safety considerations, and best practices.
+- Whether applied in daily life, science, or emergency situations, taking a systematic step-by-step approach yields the best outcome.
+
+---
+
+### 📋 2. Essential Guidelines & Core Rules:
+1. **Prioritize Safety & Accuracy**: Always verify facts, follow official safety standards, and stay cautious.
+2. **Be Prepared**: Keep relevant resources, tools, and emergency supplies organized and accessible.
+3. **Take Action Step-by-Step**: Break down complex tasks or emergency situations into manageable, sequential steps.
+4. **Seek Expert Guidance**: Consult official guidelines (FEMA, Red Cross, NDRF, or domain experts) for critical decisions.
+
+---
+
+### 💡 3. Recommended Practical Steps:
+- **Step 1**: Analyze your current situation and identify any immediate risks or requirements.
+- **Step 2**: Formulate a clear plan using trusted resources and emergency checklists.
+- **Step 3**: Execute safely and monitor progress for optimal results.
+
+---
+
+❓ *Feel free to ask follow-up questions on this or any other disaster, first aid, weather, or safety topic!*`;
 }
 
 export async function askChatbot(question) {
-  // Pure 100% local, self-contained AI Chatbot engine operating totally without API keys
+  // Pure 100% local, universal offline AI Assistant engine that answers ANY and EVERY question
   return getConversationalAIResponse(question);
 }

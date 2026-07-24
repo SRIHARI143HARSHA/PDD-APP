@@ -87,12 +87,13 @@ export default function QuizScreen({ route, navigation }) {
       if (typeof window !== 'undefined' && window.localStorage) {
         const saved = window.localStorage.getItem('disaster_app_quiz_progress');
         const map = saved ? JSON.parse(saved) : {};
-        const previous = map[selectedCourse] || { attempted: false, attempts: 0, latestScore: null, bestScore: null };
+        const previous = map[selectedCourse] || { attempted: false, completed: false, attempts: 0, latestScore: null, bestScore: null };
         const previousBest = typeof previous.bestScore === 'number' ? previous.bestScore : 0;
         const newBest = Math.max(previousBest, percent);
 
         map[selectedCourse] = {
           attempted: true,
+          completed: true,
           attempts: (previous.attempts || 0) + 1,
           latestScore: percent,
           bestScore: newBest,

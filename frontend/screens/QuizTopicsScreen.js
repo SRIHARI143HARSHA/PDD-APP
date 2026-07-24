@@ -1,5 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
-import { useContext, useEffect, useState } from 'react';
+import { useFocusEffect } from '@react-navigation/native';
+import { useCallback, useContext, useEffect, useState } from 'react';
 import {
     Platform,
     ScrollView,
@@ -12,11 +13,11 @@ import { courseData } from '../../data/courseData';
 import { ThemeContext } from '../context/ThemeContext';
 
 const defaultQuizData = {
-  'Flood Safety': { attempted: false, attempts: 0, latestScore: null, bestScore: null },
-  'Earthquake Safety': { attempted: false, attempts: 0, latestScore: null, bestScore: null },
-  'Fire Safety': { attempted: false, attempts: 0, latestScore: null, bestScore: null },
-  'Cyclone Preparedness': { attempted: false, attempts: 0, latestScore: null, bestScore: null },
-  'Tsunami Preparedness': { attempted: false, attempts: 0, latestScore: null, bestScore: null },
+  'Flood Safety': { attempted: false, completed: false, attempts: 0, latestScore: null, bestScore: null },
+  'Earthquake Safety': { attempted: false, completed: false, attempts: 0, latestScore: null, bestScore: null },
+  'Fire Safety': { attempted: false, completed: false, attempts: 0, latestScore: null, bestScore: null },
+  'Cyclone Preparedness': { attempted: false, completed: false, attempts: 0, latestScore: null, bestScore: null },
+  'Tsunami Preparedness': { attempted: false, completed: false, attempts: 0, latestScore: null, bestScore: null },
 };
 
 const quizList = [
@@ -78,7 +79,7 @@ export default function QuizTopicsScreen({ navigation, searchQuery = '' }) {
 
   const [quizStats, setQuizStats] = useState(defaultQuizData);
 
-  useEffect(() => {
+  const loadQuizProgress = useCallback(() => {
     try {
       if (typeof window !== 'undefined' && window.localStorage) {
         const saved = window.localStorage.getItem('disaster_app_quiz_progress');
@@ -90,7 +91,17 @@ export default function QuizTopicsScreen({ navigation, searchQuery = '' }) {
     } catch (e) {}
   }, []);
 
-  const attemptedQuizzes = quizList.filter((q) => quizStats[q.topicKey]?.attempted).length;
+  useFocusEffect(
+    useCallback(() => {
+      loadQuizProgress();
+    }, [loadQuizProgress])
+  );
+
+  useEffect(() => {
+    loadQuizProgress();
+  }, [loadQuizProgress]);
+
+  const attemptedQuizzes = quizList.filter((q) => quizStats[q.topicKey]?.attempted || quizStats[q.topicKey]?.completed).length;
   const totalQuizzes = quizList.length;
 
   const attemptedScores = quizList
@@ -150,13 +161,13 @@ export default function QuizTopicsScreen({ navigation, searchQuery = '' }) {
           <View style={styles.cardHeaderRow}>
             <Text style={[styles.cardHeaderTitle, { color: colors.text }]}>Quiz Progress</Text>
             <Text style={[styles.cardPercentText, { color: '#2563EB' }]}>
-              {attemptedQuizzes} of {totalQuizzes} Attempted
+              {attemptedQuizzes} of {totalQuizzes} Completed
             </Text>
           </View>
 
           <Text style={[styles.completionSub, { color: colors.subtext }]}>
             {attemptedQuizzes === 0
-              ? 'No quizzes attempted yet.'
+              ? 'No quizzes completed yet.'
               : `${attemptedQuizzes} quiz topic${attemptedQuizzes > 1 ? 's' : ''} completed.`}
           </Text>
 
@@ -198,8 +209,8 @@ export default function QuizTopicsScreen({ navigation, searchQuery = '' }) {
           }
         >
           {visibleQuizzes.map((quiz) => {
-            const stat = quizStats[quiz.topicKey] || { attempted: false, attempts: 0 };
-            const isAttempted = stat.attempted;
+            const stat = quizStats[quiz.topicKey] || { attempted: false, completed: false, attempts: 0 };
+            const isDone = stat.attempted || stat.completed;
             const questionsCount = courseData[quiz.topicKey]?.quizQuestions?.length || quiz.questions;
             const correctNum = typeof stat.latestScore === 'number' ? Math.round((stat.latestScore / 100) * questionsCount) : 0;
 
@@ -210,7 +221,7 @@ export default function QuizTopicsScreen({ navigation, searchQuery = '' }) {
                 dataSet={{ class: 'course-card-cell' }}
                 style={[
                   styles.quizCard,
-                  { backgroundColor: colors.card, borderColor: colors.border },
+                  { backgroundColor: colors.card, borderColor: isDone ? '#10B981' : colors.border },
                 ]}
               >
                 <View style={styles.quizCardTop}>
@@ -218,10 +229,10 @@ export default function QuizTopicsScreen({ navigation, searchQuery = '' }) {
                     <Ionicons name={quiz.icon} size={24} color={quiz.accent} />
                   </View>
 
-                  {isAttempted ? (
+                  {isDone ? (
                     <View style={styles.completedBadge}>
-                      <Ionicons name="checkmark-circle" size={14} color="#10B981" style={{ marginRight: 4 }} />
-                      <Text style={styles.completedBadgeText}>✓ Completed</Text>
+                      <Ionicons name="checkmark-circle" size={14} color="#FFFFFF" style={{ marginRight: 4 }} />
+                      <Text style={styles.completedBadgeText}>COMPLETED</Text>
                     </View>
                   ) : (
                     <View style={styles.notAttemptedBadge}>
@@ -241,7 +252,7 @@ export default function QuizTopicsScreen({ navigation, searchQuery = '' }) {
                   </Text>
                 </View>
 
-                {isAttempted ? (
+                {isDone ? (
                   <View style={styles.scoreRow}>
                     <View style={styles.scoreMetaCol}>
                       <Text style={[styles.scoreLabel, { color: colors.subtext }]}>Score</Text>
@@ -261,7 +272,7 @@ export default function QuizTopicsScreen({ navigation, searchQuery = '' }) {
                 <TouchableOpacity
                   style={[
                     styles.actionButton,
-                    { backgroundColor: isAttempted ? '#059669' : quiz.accent },
+                    { backgroundColor: isDone ? '#10B981' : quiz.accent },
                   ]}
                   onPress={() =>
                     navigation.navigate('Quiz', {
@@ -271,7 +282,7 @@ export default function QuizTopicsScreen({ navigation, searchQuery = '' }) {
                   activeOpacity={0.85}
                 >
                   <Text style={styles.actionButtonText}>
-                    {isAttempted ? 'Retry Quiz' : 'Start Quiz'}
+                    {isDone ? '✓ Completed (Retry)' : 'Start Quiz'}
                   </Text>
                 </TouchableOpacity>
               </View>
@@ -401,15 +412,16 @@ const styles = StyleSheet.create({
   completedBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#E6F4EA',
+    backgroundColor: '#10B981',
     paddingHorizontal: 10,
-    paddingVertical: 4,
+    paddingVertical: 5,
     borderRadius: 999,
   },
   completedBadgeText: {
-    color: '#059669',
+    color: '#FFFFFF',
     fontSize: 11,
-    fontWeight: '800',
+    fontWeight: '900',
+    letterSpacing: 0.5,
   },
   notAttemptedBadge: {
     paddingHorizontal: 10,

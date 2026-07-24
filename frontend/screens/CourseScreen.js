@@ -673,7 +673,7 @@ const styles = StyleSheet.create({
   },
   progressDetailHeader: {
     flexDirection: 'row',
-    justify.content: 'space-between',
+    justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: 4,
   },

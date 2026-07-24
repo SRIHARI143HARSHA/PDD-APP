@@ -27,6 +27,7 @@ export default function ChatbotScreen() {
 
   const [message, setMessage] = useState('');
   const [loading, setLoading] = useState(false);
+  const [thinkingText, setThinkingText] = useState('Thinking...');
   const [chat, setChat] = useState([]);
   const flatListRef = useRef(null);
 
@@ -73,9 +74,19 @@ export default function ChatbotScreen() {
     setChat((prev) => [...prev, userMsg]);
     setMessage('');
     setLoading(true);
+    setThinkingText('Thinking...');
+
+    // Animate multi-stage AI reasoning steps over 2.4 seconds
+    const timer1 = setTimeout(() => setThinkingText('Analyzing safety guidelines...'), 800);
+    const timer2 = setTimeout(() => setThinkingText('Formulating response...'), 1600);
 
     try {
-      const reply = await askChatbot(query);
+      // Promise.all enforces realistic 2.4s AI reasoning delay
+      const [reply] = await Promise.all([
+        askChatbot(query),
+        new Promise((resolve) => setTimeout(resolve, 2400)),
+      ]);
+
       const botMsg = {
         id: (Date.now() + 1).toString(),
         sender: 'bot',
@@ -90,6 +101,8 @@ export default function ChatbotScreen() {
       };
       setChat((prev) => [...prev, botMsg]);
     } finally {
+      clearTimeout(timer1);
+      clearTimeout(timer2);
       setLoading(false);
     }
   };
@@ -174,7 +187,7 @@ export default function ChatbotScreen() {
           />
         )}
 
-        {/* Loading / Typing State */}
+        {/* Loading / Typing State with Dynamic Thinking Animation */}
         {loading && (
           <View style={styles.typingContainer}>
             <View style={styles.botAvatar}>
@@ -182,7 +195,7 @@ export default function ChatbotScreen() {
             </View>
             <View style={[styles.typingBubble, { backgroundColor: colors.botBubble, borderColor: colors.border }]}>
               <ActivityIndicator size="small" color="#2563EB" />
-              <Text style={[styles.typingText, { color: colors.subtext }]}>AI Assistant is analyzing...</Text>
+              <Text style={[styles.typingText, { color: colors.subtext }]}>{thinkingText}</Text>
             </View>
           </View>
         )}
@@ -368,7 +381,7 @@ const styles = StyleSheet.create({
   },
   typingText: {
     fontSize: 12,
-    fontWeight: '600',
+    fontWeight: '700',
   },
   composerWrap: {
     flexDirection: 'row',

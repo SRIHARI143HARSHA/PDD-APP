@@ -1,8 +1,3 @@
-import { GoogleGenerativeAI } from '@google/generative-ai';
-
-const API_KEY = process.env.GEMINI_API_KEY || 'DUMMY_GEMINI_API_KEY';
-const genAI = new GoogleGenerativeAI(API_KEY);
-
 export function getConversationalAIResponse(question) {
   const q = (question || '').trim().toLowerCase();
 
@@ -327,33 +322,6 @@ Disaster preparedness requires proactive planning, quick decision-making, and ac
 }
 
 export async function askChatbot(question) {
-  try {
-    if (process.env.GEMINI_API_KEY && API_KEY !== 'DUMMY_GEMINI_API_KEY') {
-      const model = genAI.getGenerativeModel({
-        model: 'gemini-2.5-flash',
-      });
-
-      const prompt = `
-You are a world-class AI Disaster Preparedness and Emergency Assistant (like ChatGPT 4o and Gemini 1.5 Pro).
-
-Provide a comprehensive, detailed, multi-paragraph response to the user's question with clean Markdown formatting (h3 headers, bold text, bulleted lists, and step-by-step action plans):
-- Focus on practical safety, emergency guidance, definitions, pre-disaster prep, during-disaster survival actions, and post-disaster recovery.
-- Respond warmly and thoroughly.
-- Keep answers structured, highly informative, and easy to read.
-
-User Question:
-${question}
-`;
-
-      const result = await model.generateContent(prompt);
-      const reply = result.response.text();
-      if (reply && reply.trim().length > 0) {
-        return reply;
-      }
-    }
-  } catch (error) {
-    console.log('Gemini AI fallback active:', error.message || error);
-  }
-
+  // Pure 100% local, self-contained AI Chatbot engine operating without external API keys
   return getConversationalAIResponse(question);
 }

@@ -8,6 +8,7 @@ import { ThemeContext } from '../context/ThemeContext';
 export default function CourseDetailsScreen({ route, navigation }) {
   const theme = useContext(ThemeContext);
   const isDark = theme?.dark ?? false;
+  const { title } = route?.params || { title: 'Flood Safety' };
   const course = courseData[title] || {
     title: title || 'Disaster Safety Course',
     category: 'SAFETY GUIDELINES',

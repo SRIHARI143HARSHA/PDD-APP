@@ -1,8 +1,9 @@
 import { Ionicons } from '@expo/vector-icons';
+import { useFocusEffect } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Location from 'expo-location';
 import { collection, getDocs } from 'firebase/firestore';
-import { useContext, useEffect, useState } from 'react';
+import { useCallback, useContext, useEffect, useState } from 'react';
 import {
     ActivityIndicator,
     Image,
@@ -44,7 +45,7 @@ export default function HomeScreen({ navigation }) {
   const [weatherData, setWeatherData] = useState(null);
   const [loadingWeather, setLoadingWeather] = useState(true);
 
-  const computePreparedness = () => {
+  const computePreparedness = useCallback(() => {
     try {
       let completedLessonsOverall = 0;
       let totalLessonsOverall = 0;
@@ -82,62 +83,71 @@ export default function HomeScreen({ navigation }) {
     } catch (e) {
       setPreparednessPercent(0);
     }
-  };
+  }, []);
+
+  const loadQuizStats = useCallback(() => {
+    try {
+      if (typeof window !== 'undefined' && window.localStorage) {
+        const saved = window.localStorage.getItem('disaster_app_quiz_progress');
+        if (saved) {
+          const map = JSON.parse(saved);
+          const attemptedCount = Object.values(map).filter((q) => q?.attempted).length;
+          setQuizzesCompleted(attemptedCount);
+        } else {
+          setQuizzesCompleted(0);
+        }
+      }
+    } catch (e) {
+      setQuizzesCompleted(0);
+    }
+  }, []);
+
+  const loadCourseStats = useCallback(() => {
+    try {
+      if (typeof window !== 'undefined' && window.localStorage) {
+        const saved = window.localStorage.getItem('disaster_app_course_progress');
+        if (saved) {
+          const map = JSON.parse(saved);
+          const completedCount = Object.values(map).filter(
+            (course) => course && Array.isArray(course.completedLessons) && course.completedLessons.length > 0
+          ).length;
+          setCoursesCompleted(completedCount);
+        } else {
+          setCoursesCompleted(0);
+        }
+      }
+    } catch (e) {
+      setCoursesCompleted(0);
+    }
+  }, []);
+
+  const loadAlerts = useCallback(async () => {
+    try {
+      const querySnapshot = await getDocs(collection(db, 'alerts'));
+      let activeCount = 0;
+      querySnapshot.forEach((doc) => {
+        const data = doc.data();
+        if (data && (data.status === 'active' || data.isActive === true || data.active === true)) {
+          activeCount++;
+        }
+      });
+      setActiveAlertsCount(activeCount);
+    } catch (error) {
+      setActiveAlertsCount(0);
+    }
+  }, []);
+
+  useFocusEffect(
+    useCallback(() => {
+      loadQuizStats();
+      loadCourseStats();
+      computePreparedness();
+      loadAlerts();
+    }, [loadQuizStats, loadCourseStats, computePreparedness, loadAlerts])
+  );
 
   useEffect(() => {
     let isMounted = true;
-
-    const loadQuizStats = () => {
-      try {
-        if (typeof window !== 'undefined' && window.localStorage) {
-          const saved = window.localStorage.getItem('disaster_app_quiz_progress');
-          if (saved) {
-            const map = JSON.parse(saved);
-            const attemptedCount = Object.values(map).filter((q) => q?.attempted).length;
-            setQuizzesCompleted(attemptedCount);
-          } else {
-            setQuizzesCompleted(0);
-          }
-        }
-      } catch (e) {
-        setQuizzesCompleted(0);
-      }
-    };
-
-    const loadCourseStats = () => {
-      try {
-        if (typeof window !== 'undefined' && window.localStorage) {
-          const saved = window.localStorage.getItem('disaster_app_course_progress');
-          if (saved) {
-            const map = JSON.parse(saved);
-            const completedCount = Object.values(map).filter(
-              (course) => course && Array.isArray(course.completedLessons) && course.completedLessons.length > 0
-            ).length;
-            setCoursesCompleted(completedCount);
-          } else {
-            setCoursesCompleted(0);
-          }
-        }
-      } catch (e) {
-        setCoursesCompleted(0);
-      }
-    };
-
-    const loadAlerts = async () => {
-      try {
-        const querySnapshot = await getDocs(collection(db, 'alerts'));
-        let activeCount = 0;
-        querySnapshot.forEach((doc) => {
-          const data = doc.data();
-          if (data && (data.status === 'active' || data.isActive === true || data.active === true)) {
-            activeCount++;
-          }
-        });
-        setActiveAlertsCount(activeCount);
-      } catch (error) {
-        setActiveAlertsCount(0);
-      }
-    };
 
     const fetchLocationAndWeather = async () => {
       try {
@@ -223,10 +233,6 @@ export default function HomeScreen({ navigation }) {
       }
     };
 
-    loadQuizStats();
-    loadCourseStats();
-    computePreparedness();
-    loadAlerts();
     fetchLocationAndWeather();
 
     return () => {
@@ -236,7 +242,7 @@ export default function HomeScreen({ navigation }) {
 
   useEffect(() => {
     computePreparedness();
-  }, [quizzesCompleted, coursesCompleted]);
+  }, [quizzesCompleted, coursesCompleted, computePreparedness]);
 
   const stats = [
     {

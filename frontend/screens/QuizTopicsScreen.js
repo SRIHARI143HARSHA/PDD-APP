@@ -11,6 +11,7 @@ import {
 } from 'react-native';
 import { courseData } from '../../data/courseData';
 import { ThemeContext } from '../context/ThemeContext';
+import { getItem } from '../services/storageService';
 
 const defaultQuizData = {
   'Flood Safety': { attempted: false, completed: false, attempts: 0, latestScore: null, bestScore: null },
@@ -79,14 +80,12 @@ export default function QuizTopicsScreen({ navigation, searchQuery = '' }) {
 
   const [quizStats, setQuizStats] = useState(defaultQuizData);
 
-  const loadQuizProgress = useCallback(() => {
+  const loadQuizProgress = useCallback(async () => {
     try {
-      if (typeof window !== 'undefined' && window.localStorage) {
-        const saved = window.localStorage.getItem('disaster_app_quiz_progress');
-        if (saved) {
-          const parsed = JSON.parse(saved);
-          setQuizStats((prev) => ({ ...prev, ...parsed }));
-        }
+      const saved = await getItem('disaster_app_quiz_progress');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        setQuizStats((prev) => ({ ...prev, ...parsed }));
       }
     } catch (e) {}
   }, []);

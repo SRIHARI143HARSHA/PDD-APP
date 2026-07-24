@@ -17,6 +17,7 @@ import {
 import { courseData } from '../../data/courseData';
 import { db } from '../../database/config';
 import { ThemeContext } from '../context/ThemeContext';
+import { getItem } from '../services/storageService';
 
 const quickActions = [
   { label: 'Quizzes', icon: 'school-outline', screen: 'QuizTopics', accent: ['#2563EB', '#60A5FA'] },
@@ -45,35 +46,31 @@ export default function HomeScreen({ navigation }) {
   const [weatherData, setWeatherData] = useState(null);
   const [loadingWeather, setLoadingWeather] = useState(true);
 
-  const computePreparedness = useCallback(() => {
+  const computePreparedness = useCallback(async () => {
     try {
       let completedLessonsOverall = 0;
       let totalLessonsOverall = 0;
-      if (typeof window !== 'undefined' && window.localStorage) {
-        const savedCourses = window.localStorage.getItem('disaster_app_course_progress');
-        const courseMap = savedCourses ? JSON.parse(savedCourses) : {};
+      const savedCourses = await getItem('disaster_app_course_progress');
+      const courseMap = savedCourses ? JSON.parse(savedCourses) : {};
 
-        Object.keys(courseData).forEach((key) => {
-          const lessons = Array.isArray(courseData[key]?.lessons) ? courseData[key].lessons.length : 0;
-          totalLessonsOverall += lessons;
-          const completed = (courseMap[key]?.completedLessons || []).length || 0;
-          completedLessonsOverall += completed;
-        });
-      }
+      Object.keys(courseData).forEach((key) => {
+        const lessons = Array.isArray(courseData[key]?.lessons) ? courseData[key].lessons.length : 0;
+        totalLessonsOverall += lessons;
+        const completed = (courseMap[key]?.completedLessons || []).length || 0;
+        completedLessonsOverall += completed;
+      });
 
       const coursePercent = totalLessonsOverall > 0 ? Math.round((completedLessonsOverall / totalLessonsOverall) * 100) : 0;
 
       let quizPercent = 0;
-      if (typeof window !== 'undefined' && window.localStorage) {
-        const savedQuizzes = window.localStorage.getItem('disaster_app_quiz_progress');
-        if (savedQuizzes) {
-          const quizMap = JSON.parse(savedQuizzes);
-          const scores = Object.values(quizMap)
-            .map((q) => (q && typeof q.bestScore === 'number' ? q.bestScore : null))
-            .filter((s) => typeof s === 'number');
-          if (scores.length > 0) {
-            quizPercent = Math.round(scores.reduce((a, b) => a + b, 0) / scores.length);
-          }
+      const savedQuizzes = await getItem('disaster_app_quiz_progress');
+      if (savedQuizzes) {
+        const quizMap = JSON.parse(savedQuizzes);
+        const scores = Object.values(quizMap)
+          .map((q) => (q && typeof q.bestScore === 'number' ? q.bestScore : null))
+          .filter((s) => typeof s === 'number');
+        if (scores.length > 0) {
+          quizPercent = Math.round(scores.reduce((a, b) => a + b, 0) / scores.length);
         }
       }
 
@@ -85,36 +82,32 @@ export default function HomeScreen({ navigation }) {
     }
   }, []);
 
-  const loadQuizStats = useCallback(() => {
+  const loadQuizStats = useCallback(async () => {
     try {
-      if (typeof window !== 'undefined' && window.localStorage) {
-        const saved = window.localStorage.getItem('disaster_app_quiz_progress');
-        if (saved) {
-          const map = JSON.parse(saved);
-          const attemptedCount = Object.values(map).filter((q) => q?.attempted).length;
-          setQuizzesCompleted(attemptedCount);
-        } else {
-          setQuizzesCompleted(0);
-        }
+      const saved = await getItem('disaster_app_quiz_progress');
+      if (saved) {
+        const map = JSON.parse(saved);
+        const attemptedCount = Object.values(map).filter((q) => q?.attempted || q?.completed).length;
+        setQuizzesCompleted(attemptedCount);
+      } else {
+        setQuizzesCompleted(0);
       }
     } catch (e) {
       setQuizzesCompleted(0);
     }
   }, []);
 
-  const loadCourseStats = useCallback(() => {
+  const loadCourseStats = useCallback(async () => {
     try {
-      if (typeof window !== 'undefined' && window.localStorage) {
-        const saved = window.localStorage.getItem('disaster_app_course_progress');
-        if (saved) {
-          const map = JSON.parse(saved);
-          const completedCount = Object.values(map).filter(
-            (course) => course && Array.isArray(course.completedLessons) && course.completedLessons.length > 0
-          ).length;
-          setCoursesCompleted(completedCount);
-        } else {
-          setCoursesCompleted(0);
-        }
+      const saved = await getItem('disaster_app_course_progress');
+      if (saved) {
+        const map = JSON.parse(saved);
+        const completedCount = Object.values(map).filter(
+          (course) => course && Array.isArray(course.completedLessons) && course.completedLessons.length > 0
+        ).length;
+        setCoursesCompleted(completedCount);
+      } else {
+        setCoursesCompleted(0);
       }
     } catch (e) {
       setCoursesCompleted(0);

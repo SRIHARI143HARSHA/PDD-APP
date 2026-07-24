@@ -12,6 +12,7 @@ import {
 import { courseData } from '../../data/courseData';
 import { db } from '../../database/config';
 import { ThemeContext } from '../context/ThemeContext';
+import { getItem, setItem } from '../services/storageService';
 
 export default function QuizScreen({ route, navigation }) {
   const theme = useContext(ThemeContext);
@@ -82,24 +83,22 @@ export default function QuizScreen({ route, navigation }) {
       console.log('Leaderboard save log:', error);
     }
 
-    // Persist real quiz attempt and score to localStorage
+    // Persist real quiz attempt and score to cross-platform AsyncStorage & LocalStorage
     try {
-      if (typeof window !== 'undefined' && window.localStorage) {
-        const saved = window.localStorage.getItem('disaster_app_quiz_progress');
-        const map = saved ? JSON.parse(saved) : {};
-        const previous = map[selectedCourse] || { attempted: false, completed: false, attempts: 0, latestScore: null, bestScore: null };
-        const previousBest = typeof previous.bestScore === 'number' ? previous.bestScore : 0;
-        const newBest = Math.max(previousBest, percent);
+      const saved = await getItem('disaster_app_quiz_progress');
+      const map = saved ? JSON.parse(saved) : {};
+      const previous = map[selectedCourse] || { attempted: false, completed: false, attempts: 0, latestScore: null, bestScore: null };
+      const previousBest = typeof previous.bestScore === 'number' ? previous.bestScore : 0;
+      const newBest = Math.max(previousBest, percent);
 
-        map[selectedCourse] = {
-          attempted: true,
-          completed: true,
-          attempts: (previous.attempts || 0) + 1,
-          latestScore: percent,
-          bestScore: newBest,
-        };
-        window.localStorage.setItem('disaster_app_quiz_progress', JSON.stringify(map));
-      }
+      map[selectedCourse] = {
+        attempted: true,
+        completed: true,
+        attempts: (previous.attempts || 0) + 1,
+        latestScore: percent,
+        bestScore: newBest,
+      };
+      await setItem('disaster_app_quiz_progress', JSON.stringify(map));
     } catch (e) {}
   };
 

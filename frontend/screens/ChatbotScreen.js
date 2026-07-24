@@ -76,15 +76,16 @@ export default function ChatbotScreen() {
     setLoading(true);
     setThinkingText('Thinking...');
 
-    // Animate multi-stage AI reasoning steps over 2.4 seconds
-    const timer1 = setTimeout(() => setThinkingText('Analyzing safety guidelines...'), 800);
-    const timer2 = setTimeout(() => setThinkingText('Formulating response...'), 1600);
+    // Animate multi-stage AI reasoning steps over 3.8 seconds (3 to 4 sec delay requested)
+    const timer1 = setTimeout(() => setThinkingText('Analyzing emergency protocols & safety guidelines...'), 900);
+    const timer2 = setTimeout(() => setThinkingText('Consulting global disaster management knowledge base...'), 1900);
+    const timer3 = setTimeout(() => setThinkingText('Synthesizing detailed emergency advice...'), 2900);
 
     try {
-      // Promise.all enforces realistic 2.4s AI reasoning delay
+      // Promise.all enforces realistic 3.8s ChatGPT/Gemini AI reasoning delay
       const [reply] = await Promise.all([
         askChatbot(query),
-        new Promise((resolve) => setTimeout(resolve, 2400)),
+        new Promise((resolve) => setTimeout(resolve, 3800)),
       ]);
 
       const botMsg = {
@@ -103,6 +104,7 @@ export default function ChatbotScreen() {
     } finally {
       clearTimeout(timer1);
       clearTimeout(timer2);
+      clearTimeout(timer3);
       setLoading(false);
     }
   };
@@ -187,7 +189,7 @@ export default function ChatbotScreen() {
           />
         )}
 
-        {/* Loading / Typing State with Dynamic Thinking Animation */}
+        {/* Loading / Typing State with Dynamic 3.8s Thinking Animation */}
         {loading && (
           <View style={styles.typingContainer}>
             <View style={styles.botAvatar}>

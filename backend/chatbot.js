@@ -7,7 +7,7 @@ export function getConversationalAIResponse(question) {
   const q = (question || '').trim().toLowerCase();
 
   if (!q) {
-    return 'Hello! I am your AI Safety Assistant. Ask me any question about disaster preparedness, emergency protocols, or safety guidelines!';
+    return 'Hello! I am your AI Disaster Safety & Emergency Assistant. Ask me any question about disaster preparedness, emergency protocols, or survival guidelines!';
   }
 
   // Greetings & Identity Queries
@@ -16,17 +16,35 @@ export function getConversationalAIResponse(question) {
     q.startsWith('hi ') ||
     q.startsWith('hello ')
   ) {
-    return `Hello! 👋 I am your AI Safety & Emergency Preparedness Assistant, powered by advanced disaster management intelligence. 🤖✨
+    return `### 👋 Hello! I am your AI Emergency & Preparedness Assistant
 
-I can assist you with:
-• 🌊 **Flood Safety**: Evacuation routes, higher ground rules, floodwater dangers, & property protection
-• 🏠 **Earthquake Readiness**: Drop/Cover/Hold procedures & structural safety
-• 🔥 **Fire Safety**: Smoke escape plans, P.A.S.S. extinguisher method, & smoke alarms
-• 🌪️ **Cyclone & Storm Prep**: Window boarding, 72-hour emergency kits, & shelter rules
-• 🌊 **Tsunami Warnings**: Coastal evacuation, natural warning signs, & high ground rules
-• 🎒 **Emergency Survival Kits**: Essential checklist for water, food, first aid, & supplies
+Powered by comprehensive global disaster management knowledge, I am here to provide instant, life-saving guidance for any natural or human-made emergency.
 
-How can I help you stay safe and prepared today? Feel free to ask any question!`;
+---
+
+### 🛡️ What I Can Assist You With:
+
+1. **🌊 Flood & Water Safety**:
+   • Flash flood warning actions, higher ground protocols, and "Turn Around Don't Drown" rules.
+
+2. **🏠 Earthquake Safety**:
+   • Drop, Cover, and Hold On techniques, indoor/outdoor positioning, and aftershock safety.
+
+3. **🔥 Fire & Wildfire Evacuation**:
+   • P.A.S.S. fire extinguisher method, smoke crawling rules, and family evacuation planning.
+
+4. **🌪️ Cyclone & Tropical Storm Prep**:
+   • Emergency window boarding, 72-hour survival kit creation, and storm eye dangers.
+
+5. **🌊 Tsunami Hazards**:
+   • Coastal natural warning signs, 100ft elevation rules, and immediate evacuation actions.
+
+6. **🎒 Emergency Survival Kit Checklists**:
+   • Complete 72-hour go-bag essentials (water, rations, first aid, power banks, & documentation).
+
+---
+
+💡 **Pro Tip**: Type any safety question below (e.g., *"What to do during a flood?"* or *"How to prepare an emergency kit?"*).`;
   }
 
   // "What is a disaster" / Definition queries
@@ -38,170 +56,274 @@ How can I help you stay safe and prepared today? Feel free to ask any question!`
     q.includes('types of disaster') ||
     q === 'disaster'
   ) {
-    return `### 🛡️ What is a Disaster?
+    return `### 🛡️ Comprehensive Overview: What is a Disaster?
 
-A **disaster** is a sudden, catastrophic event that causes severe disruption to a community or society, resulting in widespread human, material, economic, or environmental loss that exceeds local capacity to cope.
+A **disaster** is a serious disruption to the functioning of a community or society involving widespread human, material, economic, or environmental impacts which exceed the ability of the affected community or society to cope using its own resources.
 
 ---
 
 ### 🌍 Primary Categories of Disasters:
 
-1. **Natural Disasters**:
-   • 🌊 **Hydrological**: Floods, Flash Floods, Tsunamis
-   • 🏠 **Seismic & Geological**: Earthquakes, Landslides, Volcanic Eruptions
-   • 🌪️ **Meteorological**: Cyclones, Typhoons, Hurricanes, Tornadoes, Heatwaves
+#### 1. 🌊 Natural Disasters
+- **Hydrological**: Floods, flash floods, river breaches, and coastal storm surges.
+- **Geological & Seismic**: Earthquakes, landslides, tsunamis, and volcanic eruptions.
+- **Meteorological**: Cyclones, typhoons, hurricanes, tornadoes, severe heatwaves, and blizzards.
 
-2. **Human-Made & Technological Disasters**:
-   • Industrial fires, chemical spills, structural collapses, and nuclear incidents.
+#### 2. 🔥 Human-Made & Technological Disasters
+- Industrial plant explosions, toxic chemical leaks, structural collapses, hazardous material spills, and nuclear incidents.
 
 ---
 
-### 💡 Why Preparedness Matters:
-Being prepared reduces vulnerability, protects family members, minimizes property damage, and speeds up community recovery.
+### 📋 Key Phases of Emergency Management:
+1. **Mitigation**: Structural reinforcements, flood barriers, and safety zoning.
+2. **Preparedness**: Emergency survival kits, evacuation plans, and warning system subscriptions.
+3. **Response**: Immediate search and rescue, medical first aid, and shelter deployment.
+4. **Recovery**: Rebuilding infrastructure, restoring utilities, and psychological support.
 
-Would you like safety tips or an emergency checklist for a specific type of disaster?`;
+---
+
+### 📞 Essential National Emergency Hotlines (India):
+- **National Emergency Number**: 112
+- **Disaster Management (NDRF)**: 1078
+- **Fire Brigade**: 101
+- **Ambulance Service**: 102 / 108`;
   }
 
   // Definition of flood
   if (q.includes('what is flood') || q.includes('define flood') || q.includes('flood meaning')) {
-    return 'A flood is an overflow of water onto dry land. If a flood warning is issued, move to higher ground immediately and avoid walking or driving through moving water.';
+    return `### 🌊 What is a Flood?
+
+A **flood** is an overflow of water that submerges land that is usually dry. Floods are among the most frequent and devastating natural hazards worldwide.
+
+---
+
+### 🌊 Common Types of Floods:
+1. **Flash Floods**: Rapid flooding caused by heavy rainfall in under 6 hours. Highly dangerous due to speed and debris.
+2. **River (Fluvial) Floods**: Occurs when rivers overflow their banks into surrounding floodplains.
+3. **Coastal Floods**: Caused by storm surges, high tides, or tsunamis pushing seawater inland.
+
+---
+
+### ⚡ Critical Immediate Rule:
+> **"Turn Around, Don't Drown!"**
+> Never walk, swim, or drive through floodwaters. Just 6 inches of moving water can knock down an adult, and 12 inches can sweep away cars.`;
   }
 
   // Flood queries
   if (q.includes('flood')) {
-    return `### 🌊 Flood Safety & Emergency Guidance
+    return `### 🌊 Complete Flood Preparedness & Survival Guide
 
-A **flood** is an overflow of water onto dry land, often caused by heavy rain, river overflow, or coastal storm surges.
+A **flood** is an overflow of water onto dry land, often caused by heavy rainfall, river overflow, or coastal storm surges.
 
 ---
 
-### 🚀 Immediate Action Protocol:
-1. **Move to Higher Ground**: Evacuate low-lying areas immediately and move to higher ground when flash flood alerts are issued.
-2. **Turn Off Utilities**: Shut off main power and gas switches if safe to prevent electrocution or gas fires.
-3. **Turn Around, Don't Drown**:
-   • 6 inches of moving water can knock down an adult.
-   • 12 inches can sweep away small cars.
-   • 2 feet of rushing water will carry away trucks and SUVs.
-4. **Avoid Floodwaters**: Never swim or walk through floodwater; it may contain toxic sewage, chemicals, or downed power lines.
+### 1. 📋 Pre-Flood Preparation Checklist:
+- **Build a 72-Hour Kit**: Pack bottled water (1 gallon/person/day), non-perishable food, flashlight, power bank, and first aid.
+- **Protect Essential Documents**: Place insurance policies, IDs, and birth certificates in a sealed waterproof bag.
+- **Elevate Electronics & Valuables**: Move appliances, chargers, and furniture above ground level.
+- **Know your elevation & routes**: Identify higher ground evacuation shelters in your municipality.
 
-Would you like advice on building a flood emergency kit or family evacuation plan?`;
+---
+
+### 2. 🚨 During-Flood Survival Rules:
+- **Move to higher ground immediately**: Evacuate low-lying areas at the first warning.
+- **Turn Off Utilities**: Shut off main circuit breakers and gas valves if safe to do so.
+- **Turn Around, Don't Drown**:
+  • **6 inches** of moving water can knock down an adult.
+  • **12 inches** of water will float small vehicles.
+  • **2 feet** of rushing water will carry away SUVs and trucks.
+- **Avoid Floodwater Contact**: Floodwater contains sewage, toxic chemicals, sharp metal debris, and active electrical currents from downed power lines.
+
+---
+
+### 3. 🛡️ Post-Flood Safety & Recovery:
+- Return home only after local emergency authorities declare the area safe.
+- Do NOT consume food or water exposed to floodwater. Use boiled or bottled water exclusively.
+- Take photos of property damage before beginning cleanup for insurance claims.`;
   }
 
   // Earthquake queries
   if (q.includes('earthquake') || q.includes('tremor') || q.includes('seismic')) {
-    return `### 🏠 Earthquake Safety Guidance
+    return `### 🏠 Comprehensive Earthquake Safety & Survival Protocol
 
-An **earthquake** is sudden ground shaking caused by tectonic plate movement beneath the Earth's surface.
-
----
-
-### 🛡️ Core Emergency Action: Drop, Cover, and Hold On!
-
-1. **DROP**: Drop onto your hands and knees to prevent being knocked over.
-2. **COVER**: Cover your head and neck under a sturdy desk or table. If no shelter is nearby, cover your head with your arms against an interior wall.
-3. **HOLD ON**: Hold on to your shelter until shaking completely stops.
+An **earthquake** is a sudden, violent shaking of the ground caused by tectonic plate movement along fault lines.
 
 ---
 
-### 📍 Location Rules:
-• **If Indoors**: Stay inside! Move away from glass windows, mirrors, hanging objects, and tall unanchored furniture. Do NOT use elevators.
-• **If Outdoors**: Move to an open area away from buildings, streetlights, trees, and utility wires.
-• **If Driving**: Pull over to a safe clear spot, stop, engage the parking brake, and remain in the vehicle until shaking stops.`;
+### 1. 🛡️ Core Emergency Action: DROP, COVER, AND HOLD ON!
+
+1. **DROP**: Drop down onto your hands and knees to prevent being thrown to the ground.
+2. **COVER**: Cover your head and neck under a sturdy desk or heavy table. If no table is nearby, shelter against an interior wall away from windows.
+3. **HOLD ON**: Hold on to your shelter with one hand and protect your head/neck until shaking completely stops.
+
+---
+
+### 2. 📍 Location-Specific Action Plan:
+
+- **If Indoors**:
+  • Stay INSIDE! Do not run outdoors during shaking (most injuries occur from falling exterior masonry).
+  • Stay away from glass windows, mirrors, hanging fixtures, and unanchored bookcases.
+  • Do NOT use elevators!
+
+- **If Outdoors**:
+  • Move to an open area clear of buildings, power lines, streetlights, trees, and overpasses.
+  • Drop to the ground and cover your head.
+
+- **If Driving**:
+  • Safely pull over to the side of the road away from bridges, overpasses, and power lines.
+  • Keep your seatbelt fastened until shaking stops.
+
+---
+
+### 3. 🚨 Post-Earthquake Recovery Steps:
+- Expect **aftershocks**—be ready to Drop, Cover, and Hold On again.
+- Check yourself and family for injuries; apply first aid.
+- Inspect gas lines for leaks (sniff for gas smell). If smelled, shut off main gas valve and leave immediately.`;
   }
 
   // Fire queries
   if (q.includes('fire') || q.includes('smoke') || q.includes('burn')) {
-    return `### 🔥 Fire Safety & Evacuation Plan
+    return `### 🔥 Comprehensive Fire Safety & Evacuation Plan
 
-When facing a building or wildfire emergency, rapid action saves lives.
-
----
-
-### 🚨 Critical Evacuation Rules:
-1. **Get Out and Stay Out**: Never go back inside a burning building for pets or belongings.
-2. **Crawl Low Under Smoke**: Toxic smoke rises to the ceiling; cleaner air is 12-24 inches above the floor.
-3. **Test Doors Before Opening**: Use the back of your hand to feel the door handle. If hot, do NOT open—use your secondary exit.
-4. **Stop, Drop, and Roll**: If clothing catches fire, immediately stop, drop to the ground, cover your face, and roll until flames are out.
+During a fire emergency, smoke inhalation and extreme heat are immediate life threats. Speed and calm execution are critical.
 
 ---
 
-### 🧯 Using a Fire Extinguisher (P.A.S.S. Method):
-• **P**ull the safety pin.
-• **A**im at the base of the fire.
-• **S**queeze the lever slowly.
-• **S**weep side to side.`;
+### 1. 🚨 Immediate Evacuation Protocol:
+1. **Get Out and Stay Out**: Never re-enter a burning building for pets, electronics, or personal belongings.
+2. **Crawl Low Under Smoke**: Toxic smoke rises to the ceiling. Breathable air remains 12 to 24 inches above the floor.
+3. **Check Doors Before Opening**: Use the back of your hand to feel the door and handle. If HOT, do NOT open—use your secondary exit.
+4. **Stop, Drop, and Roll**: If your clothing catches fire, immediately STOP moving, DROP to the ground, cover your face with your hands, and ROLL back and forth until flames are smothered.
+
+---
+
+### 2. 🧯 Using a Fire Extinguisher (The P.A.S.S. Technique):
+- **P - Pull**: Pull the safety pin located at the top of the extinguisher.
+- **A - Aim**: Aim low at the **base** of the fire, not at the flames.
+- **S - Squeeze**: Squeeze the lever slowly and evenly.
+- **S - Sweep**: Sweep the nozzle side to side across the base of the fire until extinguished.
+
+---
+
+### 3. 📋 Home Fire Prevention Rules:
+- Test smoke alarms monthly and replace batteries annually.
+- Keep flammable items at least 3 feet away from heaters and stoves.
+- Establish two escape routes from every bedroom in your home.`;
   }
 
   // Cyclone / Hurricane queries
   if (q.includes('cyclone') || q.includes('hurricane') || q.includes('typhoon') || q.includes('storm')) {
-    return `### 🌪️ Cyclone & Hurricane Preparedness
+    return `### 🌪️ Cyclone & Tropical Storm Safety Masterclass
 
-Cyclones produce extreme winds, heavy rainfall, and coastal storm surges.
-
----
-
-### 📋 Before the Storm:
-• **Secure Windows & Doors**: Board up windows with storm shutters or marine plywood.
-• **Clear Outdoors**: Move outdoor furniture, garbage cans, and loose items inside.
-• **Prepare 72-Hour Kit**: Stock non-perishable food, bottled water (1 gallon/person/day), and power banks.
+**Cyclones** generate damaging destructive winds, torrential rainfall, severe storm surges, and localized tornadoes.
 
 ---
 
-### 🏠 During the Storm:
-• Stay in a windowless interior room, closet, or hallway on the lowest level.
-• **Beware the Eye of the Storm**: If winds suddenly stop, do NOT go outside! The storm eye is temporary, and severe winds will resume from the opposite direction.`;
+### 1. 📋 Pre-Cyclone Preparation Checklist:
+- **Board Up Windows**: Install storm shutters or 5/8-inch marine plywood over windows.
+- **Secure Loose Outdoor Items**: Bring patio furniture, trash cans, bicycles, and garden tools indoors.
+- **Stock Emergency Rations**: Maintain a 72-hour supply of non-perishable food, bottled water, flashlight, and power banks.
+- **Fuel Vehicles & Power Banks**: Charge all mobile devices and fill your vehicle's fuel tank.
+
+---
+
+### 2. 🏠 During-Cyclone Survival Rules:
+- Stay in an interior windowless room, hallway, or bathroom on the lowest floor.
+- Keep away from glass doors and windows.
+- **⚠️ Beware the Eye of the Storm**: If winds suddenly drop to dead calm, **DO NOT GO OUTSIDE!** You are inside the storm's eye; violent winds will resume shortly from the opposite direction.
+
+---
+
+### 3. 🚨 Post-Cyclone Precautions:
+- Stay clear of fallen power lines and flooded roadways.
+- Inspect home structures for damage before entering.
+- Use battery-powered flashlights instead of candles to prevent gas explosion hazards.`;
   }
 
   // Tsunami queries
   if (q.includes('tsunami') || q.includes('tidal wave')) {
-    return `### 🌊 Tsunami Emergency Response
+    return `### 🌊 Tsunami Emergency Evacuation Protocol
 
-A **tsunami** is a series of giant ocean waves triggered by undersea earthquakes, landslides, or volcanic eruptions.
-
----
-
-### ⚠️ Natural Warning Signs:
-1. Strong earthquake near a coastal area.
-2. Rapid recession of ocean water exposing the sea floor.
-3. Loud roaring sound coming from the ocean (resembling a train or jet).
+A **tsunami** is a series of powerful ocean waves caused by underwater earthquakes, submarine landslides, or volcanic eruptions.
 
 ---
 
-### 🏃 Immediate Action:
-• **Head High & Inland Immediately**: Move at least 100 feet above sea level or 2 miles inland.
-• **Do Not Wait for Official Warnings**: If you observe natural warning signs, evacuate instantly on foot.`;
+### 1. ⚠️ Natural Warning Signs (Evacuate Instantly):
+- **Strong Coastal Earthquake**: Ground shaking lasting 20 seconds or longer near coastal zones.
+- **Rapid Ocean Drawback**: Water receding dramatically off the shoreline, exposing coral reefs and sea floor.
+- **Roaring Ocean Noise**: A loud, roaring sound originating from the sea, sounding like a freight train or jet engine.
+
+---
+
+### 2. 🏃 Immediate Action Protocol:
+- **Move Inland & High Up**: Head at least **100 feet above sea level** or **2 miles inland**.
+- **Evacuate on Foot**: Roads may become jammed with traffic; evacuate on foot along designated tsunami routes.
+- **Do NOT Wait for Official Alerts**: If you witness natural warning signs, act immediately without delay!
+
+---
+
+### 3. 🌊 Tsunami Waves Fact:
+- A tsunami is **NOT** a single wave, but a series of waves separated by minutes to hours. The first wave is rarely the largest! Stay away from coastal zones until official clearance is given.`;
   }
 
   // Emergency Kit / Preparedness Plan queries
   if (q.includes('kit') || q.includes('bag') || q.includes('prepare') || q.includes('supplies') || q.includes('plan')) {
-    return `### 🎒 Essential Disaster Emergency Kit Checklist
+    return `### 🎒 Complete 72-Hour Disaster Emergency Kit Checklist
 
-Keep a 72-hour emergency go-bag accessible near your exit door:
+Every household should maintain a portable, durable **Go-Bag** stored near an exit doorway for immediate evacuation.
 
 ---
 
-### 🛒 Top 7 Essential Items:
-1. **Water**: 1 gallon per person per day for at least 3 days.
-2. **Food**: 3-day supply of non-perishable canned/packaged food + manual can opener.
-3. **First Aid Kit**: Bandages, antiseptic wipes, sterile gauze, burn cream, & prescription meds.
-4. **Flashlight & Radio**: Battery-powered or hand-crank flashlight and NOAA weather radio + extra batteries.
-5. **Power Bank & Cables**: Fully charged portable phone charger.
-6. **Important Documents**: Copies of ID, insurance policies, medical records in a waterproof bag.
-7. **Whistle & Multi-Tool**: High-decibel emergency whistle to signal for help.`;
+### 🛒 Top Essential Items Checklist:
+
+1. **💧 Water**:
+   • 1 gallon (3.8 liters) per person per day for a minimum of 3 days (for drinking and sanitation).
+
+2. **🥫 Food**:
+   • 3-day supply of non-perishable canned meat, dried fruits, energy bars, and a manual can opener.
+
+3. **🩹 First Aid Kit**:
+   • Sterile gauze pads, adhesive bandages, antiseptic wipes, burn ointment, scissors, tweezers, and a 14-day supply of personal prescription medications.
+
+4. **🔦 Lighting & Communication**:
+   • Battery-powered or hand-crank LED flashlight, NOAA emergency weather radio, extra batteries, and a high-decibel whistle.
+
+5. **🔋 Power & Tech**:
+   • Fully charged 20,000mAh portable power bank with universal USB charging cables.
+
+6. **📄 Critical Documents**:
+   • Copies of passport, driver's license, insurance policies, medical records, and cash stored in a sealed waterproof pouch.
+
+7. **🧥 Sanitation & Warmth**:
+   • Mylar thermal blankets, wet wipes, hand sanitizer, N95 dust masks, and sturdy work gloves.`;
   }
 
   // General Fallback for any other question
-  return `### 🛡️ Disaster Safety Assistance
+  return `### 🛡️ Expert Disaster Safety Guidance
 
-Here is guidance regarding **"${question}"**:
+Regarding your query on **"${question}"**:
 
-For effective disaster safety and emergency response:
-• **Stay Informed**: Monitor local weather alerts, emergency broadcasts, and government instructions.
-• **Emergency Kit**: Maintain a 72-hour survival kit with water, food, first aid, and power banks.
-• **Evacuation Plan**: Establish two family meeting points and know at least two evacuation routes from your area.
-• **Emergency Contacts**: Keep national and local emergency numbers saved on your phone and written down.
+Disaster preparedness requires proactive planning, quick decision-making, and access to verified emergency resources.
 
-Would you like detailed safety steps for a specific disaster like a **Flood**, **Earthquake**, **Fire**, **Cyclone**, or **Tsunami**?`;
+---
+
+### 📋 4 Fundamental Rules for Any Emergency:
+
+1. **Stay Informed**:
+   • Subscribe to official weather alerts, municipal warning broadcasts, and emergency radio feeds.
+
+2. **Maintain a 72-Hour Go-Bag**:
+   • Store water, non-perishable food, first aid, power banks, and essential documents near your home exit.
+
+3. **Establish a Family Emergency Plan**:
+   • Designate two meeting points (one outside your home, one outside your neighborhood) and emergency contacts.
+
+4. **Know Your Local Evacuation Routes**:
+   • Identify primary and secondary evacuation paths out of your district.
+
+---
+
+❓ Would you like detailed step-by-step protocols for a specific emergency such as a **Flood**, **Earthquake**, **Fire**, **Cyclone**, or **Tsunami**?`;
 }
 
 export async function askChatbot(question) {
@@ -212,13 +334,12 @@ export async function askChatbot(question) {
       });
 
       const prompt = `
-You are a helpful, expert AI Disaster Preparedness and Emergency Assistant (like ChatGPT and Gemini AI).
+You are a world-class AI Disaster Preparedness and Emergency Assistant (like ChatGPT 4o and Gemini 1.5 Pro).
 
-Answer the user's question with clear formatting, markdown headers, and bullet points where helpful:
-- Focus on practical safety, emergency guidance, definitions, and preparedness.
-- Respond conversationally and warmly to greetings like "hi" or "hello".
-- If asked "what is disaster", explain clearly with categories (Natural vs. Human-made) and safety tips.
-- Keep answers informative, accurate, and easy to read.
+Provide a comprehensive, detailed, multi-paragraph response to the user's question with clean Markdown formatting (h3 headers, bold text, bulleted lists, and step-by-step action plans):
+- Focus on practical safety, emergency guidance, definitions, pre-disaster prep, during-disaster survival actions, and post-disaster recovery.
+- Respond warmly and thoroughly.
+- Keep answers structured, highly informative, and easy to read.
 
 User Question:
 ${question}

@@ -19,6 +19,7 @@ const defaultQuizData = {
   'Fire Safety': { attempted: false, completed: false, attempts: 0, latestScore: null, bestScore: null },
   'Cyclone Preparedness': { attempted: false, completed: false, attempts: 0, latestScore: null, bestScore: null },
   'Tsunami Preparedness': { attempted: false, completed: false, attempts: 0, latestScore: null, bestScore: null },
+  'Landslide Safety': { attempted: false, completed: false, attempts: 0, latestScore: null, bestScore: null },
 };
 
 const quizList = [
@@ -71,6 +72,16 @@ const quizList = [
     difficulty: 'Intermediate',
     icon: 'boat-outline',
     accent: '#7C3AED',
+  },
+  {
+    id: 'landslide',
+    title: 'Landslide & Slope Safety Quiz',
+    topicKey: 'Landslide Safety',
+    desc: 'Test your knowledge on slope instability signs, mudslide risks, and downhill safety.',
+    questions: 10,
+    difficulty: 'Intermediate',
+    icon: 'trending-down-outline',
+    accent: '#D97706',
   },
 ];
 

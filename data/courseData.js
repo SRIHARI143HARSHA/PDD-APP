@@ -1197,4 +1197,281 @@ Post-Tsunami Recovery:
       },
     ],
   },
+
+  "Landslide Safety": {
+    image: require('../assets/images/earthquake.jpg'),
+    heroImage: require('../assets/images/Disaster.png'),
+    title: "Landslide & Slope Safety",
+    category: "LANDSLIDE SAFETY",
+    description: "Identify slope instability warning signs, mudslide risks, and downhill evacuation safety.",
+    content: "Landslides and debris flows strike rapidly on steep slopes during heavy rains. Early warning recognition saves lives.",
+    video: 'https://www.youtube.com/watch?v=BLEPakj1YTY',
+    totalLessons: 6,
+    lessons: [
+      {
+        id: 1,
+        title: "Understanding Landslides and Debris Flows",
+        content: `Landslides occur when soil, rock, and organic debris slide down a slope due to gravity, water saturation, or seismic shaking.
+
+1. Types of Slope Failure:
+• Mudslides & Debris Flows: Rapid rivers of liquid mud, boulders, trees, and water carrying immense momentum down mountain channels.
+• Rockfalls: Sudden free-fall of large boulders detachment from cliff faces.
+
+2. Triggers:
+• Prolonged Heavy Rainfall: Water saturates hillside soil layers, reducing friction and causing slope liquefaction.
+• Human Interventions: Deforestation, illegal hill cutting, and poor drainage construction.`,
+        keyRule: "Recognize that intense rainfall on steep terrain increases landslide risk exponentially.",
+        proTip: "Listen for unusual rumbling sounds or snapping trees on steep hillsides during heavy monsoon rains.",
+        mythVsFact: {
+          myth: "Landslides only happen on extreme, vertical mountain cliffs.",
+          fact: "Debris flows can occur on moderate slopes as low as 15 degrees if soil is completely water-saturated.",
+        },
+        checklist: [
+          "Identify hillside drainage channels near your residence",
+          "Check local geological hazard maps for slope instability zones",
+          "Monitor rainfall accumulation gauges during severe weather",
+        ],
+        remember: [
+          "Heavy rainfall saturates soil and triggers rapid debris flows",
+          "Debris flows travel rapidly down stream channels and valleys",
+          "Unusual tree snapping or soil shifting signals imminent failure",
+        ],
+      },
+      {
+        id: 2,
+        title: "Early Warning Signs of Slope Failure",
+        content: `Recognizing early environmental indicators allows timely evacuation before catastrophic slope collapse.
+
+1. Structural Indicators:
+• New cracks opening in plaster, brickwork, foundations, or paved roads.
+• Doors and window frames sticking or jamming unexpectedly due to ground tilting.
+
+2. Environmental Warning Signs:
+• Trees, utility poles, or retaining walls leaning downhill.
+• Sudden change from clear stream water to muddy, sediment-choked torrents.
+• Faint rumbling sounds that gradually increase in volume as a debris flow approaches.`,
+        keyRule: "Evacuate immediately upon detecting leaning trees, cracking foundations, or sudden mud torrents.",
+        proTip: "If you observe new cracks in retaining walls or hillside soil, notify local emergency management and neighbors downhill instantly.",
+        mythVsFact: {
+          myth: "Landslides give plenty of advance warning time before sliding.",
+          fact: "Initial soil movement can accelerate into a 35 mph debris torrent within seconds.",
+        },
+        checklist: [
+          "Inspect exterior retaining walls for new tilting or bulging",
+          "Watch for new cracks in driveway pavement and house foundations",
+          "Listen for deep subterranean rumbling or cracking sounds",
+        ],
+        remember: [
+          "Leaning utility poles and trees indicate active ground movement",
+          "Sticking doors and windows signal structural foundation tilting",
+          "Sudden muddy stream runoff warns of upstream soil erosion",
+        ],
+      },
+      {
+        id: 3,
+        title: "Pre-Landslide Safety & Home Protection",
+        content: `Proactive land management and structural drainage engineering minimize landslide vulnerability.
+
+1. Drainage Control:
+• Install flexible downspouts to direct rainwater away from steep slope edges.
+• Maintain cleared culverts, swales, and retaining wall weep holes to prevent water ponding.
+
+2. Vegetation Protection:
+• Retain deep-rooted native trees and groundcover on steep slopes to anchor topsoil layers.
+• Avoid heavy landscaping fill or unpermitted hill excavations near home foundations.`,
+        keyRule: "Direct surface runoff water away from slope edges using proper drainage channels.",
+        proTip: "Plant deep-rooted groundcover like vetiver grass on exposed embankments to naturally stabilize topsoil against erosion.",
+        mythVsFact: {
+          myth: "Cutting down large trees on a hillside prevents them from falling during slides.",
+          fact: "Tree roots hold soil together like a structural mesh. Removing trees increases landslide risk significantly.",
+        },
+        checklist: [
+          "Clean rainwater gutters and direct downspouts away from slopes",
+          "Plant native deep-rooted vegetation on steep embankments",
+          "Consult geotechnical engineers before cutting into hillsides",
+        ],
+        remember: [
+          "Proper drainage prevents water saturation on slope banks",
+          "Tree roots stabilize topsoil and absorb groundwater excess",
+          "Keep retaining wall weep holes clear of dirt and debris",
+        ],
+      },
+      {
+        id: 4,
+        title: "Immediate Action During a Landslide",
+        content: `Immediate response actions when a landslide or mudslide occurs in your vicinity.
+
+1. If Indoors:
+• If evacuation is impossible, move to an upper floor on the side of the building OPPOSITE the approaching slide.
+• Curl into a tight ball, cover your head and neck with your arms, and take shelter under heavy furniture.
+
+2. If Outdoors or Driving:
+• Run across the path of the slide toward high, stable ground—never run directly downhill in front of a debris flow!
+• If driving, watch for collapsed pavement, mud on roadways, and falling boulders near mountain road cuts.`,
+        keyRule: "Run perpendicular to the slide path toward high ground—never run downhill ahead of it.",
+        proTip: "Debris flows travel along natural drainage ravines. Move out of stream valleys and gully floors immediately during torrential storms.",
+        mythVsFact: {
+          myth: "You can easily outrun a fast-moving mudslide downhill.",
+          fact: "Debris flows move up to 35 mph, carrying boulders and trees. Move sideways out of its path to safety.",
+        },
+        checklist: [
+          "Run sideways (perpendicular) away from the path of mudflows",
+          "Move to upper floors on the opposite side if trapped inside",
+          "Curling into a ball protecting head if caught in debris",
+        ],
+        remember: [
+          "Run perpendicular across the slide path to high ground",
+          "Stay completely clear of river channels and gully bottoms",
+          "Protect head and neck if caught inside a sliding structure",
+        ],
+      },
+      {
+        id: 5,
+        title: "Evacuation Protocol for Hillside Communities",
+        content: `Orderly evacuation saves lives when landslide warnings are declared for high-risk mountain sectors.
+
+1. Pre-Designated Evacuation Routes:
+Know primary and secondary downhill and ridge evacuation routes away from unstable gullies.
+
+2. Emergency Go-Bag & Relocation:
+Evacuate early at night if intense rainfall persists—most catastrophic landslide fatalities occur while residents sleep during nighttime storms.`,
+        keyRule: "Evacuate high-risk hillside homes early before nighttime heavy rainstorms intensify.",
+        proTip: "Keep a battery-powered flashlight and sturdy hiking boots next to your bed during monsoon storms in mountain regions.",
+        mythVsFact: {
+          myth: "You should wait for an official evacuation order before leaving an unstable hillside.",
+          fact: "Landslides can cut off roads and power in seconds. Evacuate voluntarily if you hear soil cracking or see mud movement.",
+        },
+        checklist: [
+          "Pack a 72-hour emergency kit with water, flashlight, and IDs",
+          "Identify secondary ridge evacuation routes out of your valley",
+          "Evacuate voluntarily before darkness if heavy rains continue",
+        ],
+        remember: [
+          "Evacuate early before nighttime storm peak",
+          "Use ridge roads rather than stream valley channels",
+          "Take emergency survival kits and essential medical supplies",
+        ],
+      },
+      {
+        id: 6,
+        title: "Post-Landslide Recovery & Community Safety",
+        content: `Post-slide environments present severe secondary hazards including secondary slides and broken utility lines.
+
+1. Secondary Slide Hazards:
+Stay clear of the slide area—additional secondary slides can occur hours or days later on adjacent unstable slopes.
+
+2. Utility & Environmental Inspection:
+• Check for broken gas, water, and electrical lines. Report utility damage to emergency response authorities immediately.
+• Re-enter damaged structures only after certified geotechnical engineers certify ground stability.`,
+        keyRule: "Stay away from slide areas; secondary landslides can occur without warning.",
+        proTip: "Photograph all structural and property damage for insurance and disaster relief claims before initiating debris removal.",
+        mythVsFact: {
+          myth: "Once a landslide stops, the slope is completely safe and stabilized.",
+          fact: "Unstable soil masses and overhangs frequently collapse in secondary slides after initial movement.",
+        },
+        checklist: [
+          "Stay clear of active slide zones and mud deposits",
+          "Report downed utility poles and cracked roads to authorities",
+          "Have geotechnical experts evaluate slope stability before rebuilding",
+        ],
+        remember: [
+          "Secondary slides can occur without warning on destabilized slopes",
+          "Report broken gas and water mains to emergency services",
+          "Obtain professional engineering clearance before structural re-entry",
+        ],
+      },
+    ],
+    quizQuestions: [
+      {
+        question: 'What is a primary natural trigger for rapid landslides and debris flows?',
+        options: ['Prolonged heavy rainfall that saturates soil layers', 'Freezing weather only', 'High winds without rain', 'Direct sunlight'],
+        answer: 'Prolonged heavy rainfall that saturates soil layers',
+      },
+      {
+        question: 'Which way should you run if caught outdoors near an approaching landslide?',
+        options: [
+          'Run perpendicular (sideways) across the slide path toward high ground',
+          'Run straight downhill ahead of the slide',
+          'Stand still in the gully',
+          'Run into the mudflow',
+        ],
+        answer: 'Run perpendicular (sideways) across the slide path toward high ground',
+      },
+      {
+        question: 'What is a common early warning sign of hillside slope instability?',
+        options: [
+          'Leaning utility poles, trees, and new foundation cracks',
+          'Clear blue skies',
+          'Dry riverbeds',
+          'High outdoor humidity',
+        ],
+        answer: 'Leaning utility poles, trees, and new foundation cracks',
+      },
+      {
+        question: 'Why should deep-rooted native trees NOT be cut down on steep hillsides?',
+        options: [
+          'Their roots anchor topsoil layers together and absorb excess groundwater',
+          'They attract rain',
+          'They block sunlight',
+          'They make noise',
+        ],
+        answer: 'Their roots anchor topsoil layers together and absorb excess groundwater',
+      },
+      {
+        question: 'What sound often signals an approaching debris flow?',
+        options: [
+          'Deep rumbling or roaring sound like a train, accompanied by tree snapping',
+          'Whistling wind',
+          'High pitch beep',
+          'Silence',
+        ],
+        answer: 'Deep rumbling or roaring sound like a train, accompanied by tree snapping',
+      },
+      {
+        question: 'Where should you shelter inside if trapped in a building during a landslide?',
+        options: [
+          'On an upper floor on the side of the building OPPOSITE the slide',
+          'In the basement',
+          'Near exterior windows facing the hill',
+          'In the garage',
+        ],
+        answer: 'On an upper floor on the side of the building OPPOSITE the slide',
+      },
+      {
+        question: 'Why is it dangerous to return to a slide area immediately after it stops?',
+        options: [
+          'Secondary landslides can occur on destabilized slopes without warning',
+          'The mud is too hot',
+          'It is illegal',
+          'Animals are nearby',
+        ],
+        answer: 'Secondary landslides can occur on destabilized slopes without warning',
+      },
+      {
+        question: 'How fast can rapid debris flows travel down mountain channels?',
+        options: ['Up to 35 mph (56 km/h)', '1 mph', '100 mph', '5 mph'],
+        answer: 'Up to 35 mph (56 km/h)',
+      },
+      {
+        question: 'What should you do with rainwater downspouts near steep slopes?',
+        options: [
+          'Direct downspout runoff away from steep slope edges using drains',
+          'Pour water directly onto slope edge',
+          'Block downspouts',
+          'Dig holes under walls',
+        ],
+        answer: 'Direct downspout runoff away from steep slope edges using drains',
+      },
+      {
+        question: 'When should residents of high-risk mountain slopes consider evacuating during severe storms?',
+        options: [
+          'Early before nighttime storm peak and heavy rainfall accumulation',
+          'After the house starts sliding',
+          'Only at midnight',
+          'Never',
+        ],
+        answer: 'Early before nighttime storm peak and heavy rainfall accumulation',
+      },
+    ],
+  },
 };

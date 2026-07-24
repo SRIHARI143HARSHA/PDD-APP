@@ -1,3 +1,8 @@
+import { GoogleGenerativeAI } from '@google/generative-ai';
+
+// Check if GEMINI_API_KEY environment variable is present
+const API_KEY = process.env.GEMINI_API_KEY || null;
+
 export function getConversationalAIResponse(question) {
   const q = (question || '').trim().toLowerCase();
 
@@ -322,6 +327,22 @@ Disaster preparedness requires proactive planning, quick decision-making, and ac
 }
 
 export async function askChatbot(question) {
-  // Pure 100% local, self-contained AI Chatbot engine operating without external API keys
+  // 1. Check if GEMINI_API_KEY environment variable is present and valid
+  if (API_KEY && API_KEY !== 'DUMMY_GEMINI_API_KEY') {
+    try {
+      const genAI = new GoogleGenerativeAI(API_KEY);
+      const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
+      const prompt = `You are an expert AI Disaster Safety Assistant. Answer clearly: ${question}`;
+      const result = await model.generateContent(prompt);
+      const reply = result.response.text();
+      if (reply && reply.trim()) {
+        return reply;
+      }
+    } catch (error) {
+      console.log('Gemini API error, falling back to local engine:', error.message || error);
+    }
+  }
+
+  // 2. If NO API KEY is present (or API call fails), seamlessly use Local Offline Disaster AI Engine
   return getConversationalAIResponse(question);
 }

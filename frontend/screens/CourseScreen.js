@@ -1,16 +1,22 @@
 import { Ionicons } from '@expo/vector-icons';
+import { addDoc, collection, getDocs } from 'firebase/firestore';
 import { useContext, useEffect, useState } from 'react';
 import {
+    Alert,
     Image,
+    Modal,
     Platform,
     ScrollView,
     StyleSheet,
     Text,
+    TextInput,
     TouchableOpacity,
     View,
 } from 'react-native';
 import { courseData } from '../../data/courseData';
+import { db } from '../../database/config';
 import { ThemeContext } from '../context/ThemeContext';
+import { getItem, setItem } from '../services/storageService';
 
 const defaultCourseData = {
   'Flood Safety': { started: false, completedLessons: [], totalLessons: 6 },
@@ -18,9 +24,10 @@ const defaultCourseData = {
   'Fire Safety': { started: false, completedLessons: [], totalLessons: 6 },
   'Cyclone Preparedness': { started: false, completedLessons: [], totalLessons: 6 },
   'Tsunami Preparedness': { started: false, completedLessons: [], totalLessons: 6 },
+  'Landslide Safety': { started: false, completedLessons: [], totalLessons: 6 },
 };
 
-const courses = [
+const initialStaticCourses = [
   {
     id: 'flood',
     name: 'Flood Safety',
@@ -71,6 +78,16 @@ const courses = [
     image: require('../../assets/images/tsunami.jpg'),
     accent: '#7C3AED',
   },
+  {
+    id: 'landslide',
+    name: 'Landslide Safety',
+    category: 'LANDSLIDE SAFETY',
+    desc: 'Identify slope instability warning signs, mudslide risks, and downhill evacuation safety.',
+    difficulty: 'Intermediate',
+    totalLessons: 6,
+    image: require('../../assets/images/earthquake.jpg'),
+    accent: '#D97706',
+  },
 ];
 
 export default function CourseScreen({ navigation, searchQuery = '' }) {
@@ -78,33 +95,136 @@ export default function CourseScreen({ navigation, searchQuery = '' }) {
   const isDark = theme?.dark ?? false;
 
   const [courseMap, setCourseMap] = useState(defaultCourseData);
+  const [allCourses, setAllCourses] = useState(initialStaticCourses);
+  const [modalVisible, setModalVisible] = useState(false);
+
+  // New Course Form State
+  const [newTitle, setNewTitle] = useState('');
+  const [newCategory, setNewCategory] = useState('');
+  const [newDesc, setNewDesc] = useState('');
+  const [newDifficulty, setNewDifficulty] = useState('Beginner');
+  const [newLessonContent, setNewLessonContent] = useState('');
+
+  const loadCoursesAndProgress = async () => {
+    try {
+      // 1. Load progress
+      const saved = await getItem('disaster_app_course_progress');
+      if (saved) {
+        setCourseMap((prev) => ({ ...prev, ...JSON.parse(saved) }));
+      }
+
+      // 2. Load custom created courses from storage/firebase
+      const savedCustom = await getItem('disaster_app_custom_courses');
+      let customList = savedCustom ? JSON.parse(savedCustom) : [];
+
+      try {
+        if (db) {
+          const snapshot = await getDocs(collection(db, 'custom_courses'));
+          const firebaseList = [];
+          snapshot.forEach((doc) => {
+            firebaseList.push(doc.data());
+          });
+          if (firebaseList.length > 0) {
+            customList = [...customList, ...firebaseList];
+          }
+        }
+      } catch (e) {}
+
+      // Deduplicate by course name
+      const mapByName = new Map();
+      initialStaticCourses.forEach((c) => mapByName.set(c.name, c));
+      customList.forEach((c) => mapByName.set(c.name, c));
+
+      setAllCourses(Array.from(mapByName.values()));
+    } catch (e) {}
+  };
 
   useEffect(() => {
-    try {
-      if (typeof window !== 'undefined' && window.localStorage) {
-        const saved = window.localStorage.getItem('disaster_app_course_progress');
-        if (saved) {
-          const parsed = JSON.parse(saved);
-          setCourseMap((prev) => ({ ...prev, ...parsed }));
-        }
-      }
-    } catch (e) {}
+    loadCoursesAndProgress();
   }, []);
 
-  const completedCoursesCount = courses.filter((c) => {
+  const handleCreateCourse = async () => {
+    if (!newTitle.trim() || !newDesc.trim()) {
+      Alert.alert('Required Fields', 'Please enter a course title and description.');
+      return;
+    }
+
+    const courseObj = {
+      id: `custom_${Date.now()}`,
+      name: newTitle.trim(),
+      category: newCategory.trim().toUpperCase() || 'GENERAL SAFETY',
+      desc: newDesc.trim(),
+      difficulty: newDifficulty,
+      totalLessons: 1,
+      image: require('../../assets/images/Disaster.png'),
+      accent: '#2563EB',
+    };
+
+    // Save dynamically to courseData structure in memory
+    courseData[courseObj.name] = {
+      title: courseObj.name,
+      category: courseObj.category,
+      description: courseObj.desc,
+      content: newLessonContent.trim() || courseObj.desc,
+      totalLessons: 1,
+      lessons: [
+        {
+          id: 1,
+          title: `${courseObj.name} Fundamentals`,
+          content: newLessonContent.trim() || courseObj.desc,
+          keyRule: 'Follow official safety guidelines and evacuation orders.',
+          proTip: 'Keep your emergency go-bag ready at all times.',
+          mythVsFact: {
+            myth: 'Panic helps you evacuate faster.',
+            fact: 'Staying calm allows rational decision-making during emergencies.',
+          },
+          checklist: ['Prepare emergency supplies', 'Establish evacuation routes'],
+          remember: ['Stay informed', 'Keep emergency contacts saved'],
+        },
+      ],
+      quizQuestions: [
+        {
+          question: `What is the main priority in ${courseObj.name}?`,
+          options: ['Personal and family safety', 'Ignoring alerts', 'Delaying evacuation', 'Taking photos'],
+          answer: 'Personal and family safety',
+        },
+      ],
+    };
+
+    try {
+      const savedCustom = await getItem('disaster_app_custom_courses');
+      const list = savedCustom ? JSON.parse(savedCustom) : [];
+      list.push(courseObj);
+      await setItem('disaster_app_custom_courses', JSON.stringify(list));
+
+      if (db) {
+        await addDoc(collection(db, 'custom_courses'), courseObj);
+      }
+    } catch (e) {}
+
+    setAllCourses((prev) => [...prev, courseObj]);
+    setModalVisible(false);
+    setNewTitle('');
+    setNewCategory('');
+    setNewDesc('');
+    setNewLessonContent('');
+    Alert.alert('Course Added!', `"${courseObj.name}" has been created and is now available in your app!`);
+  };
+
+  const completedCoursesCount = allCourses.filter((c) => {
     const data = courseMap[c.name] || {};
     const completedArr = data.completedLessons || [];
     return completedArr.length >= c.totalLessons;
   }).length;
 
-  const inProgressCoursesCount = courses.filter((c) => {
+  const inProgressCoursesCount = allCourses.filter((c) => {
     const data = courseMap[c.name] || {};
     const completedArr = data.completedLessons || [];
     return completedArr.length > 0 && completedArr.length < c.totalLessons;
   }).length;
 
-  const totalLessonsOverall = courses.reduce((sum, c) => sum + (courseData[c.name]?.lessons?.length || c.totalLessons), 0);
-  const completedLessonsOverall = courses.reduce((sum, c) => {
+  const totalLessonsOverall = allCourses.reduce((sum, c) => sum + (courseData[c.name]?.lessons?.length || c.totalLessons), 0);
+  const completedLessonsOverall = allCourses.reduce((sum, c) => {
     const data = courseMap[c.name] || {};
     return sum + (data.completedLessons?.length || 0);
   }, 0);
@@ -113,11 +233,11 @@ export default function CourseScreen({ navigation, searchQuery = '' }) {
 
   const normalizedQuery = searchQuery.trim().toLowerCase();
   const visibleCourses = normalizedQuery
-    ? courses.filter((course) => {
+    ? allCourses.filter((course) => {
         const haystack = `${course.name} ${course.desc} ${course.category}`.toLowerCase();
         return haystack.includes(normalizedQuery);
       })
-    : courses;
+    : allCourses;
 
   const colors = isDark
     ? {
@@ -127,6 +247,8 @@ export default function CourseScreen({ navigation, searchQuery = '' }) {
         text: '#E6EEF8',
         subtext: '#94A3B8',
         trackBg: '#1E293B',
+        modalBg: '#071426',
+        inputBg: '#0F1C2E',
       }
     : {
         bg: '#F8FAFC',
@@ -135,6 +257,8 @@ export default function CourseScreen({ navigation, searchQuery = '' }) {
         text: '#0F172A',
         subtext: '#64748B',
         trackBg: '#F1F5F9',
+        modalBg: '#FFFFFF',
+        inputBg: '#F8FAFC',
       };
 
   const isWeb = Platform.OS === 'web';
@@ -145,12 +269,23 @@ export default function CourseScreen({ navigation, searchQuery = '' }) {
       contentContainerStyle={styles.contentContainer}
     >
       <View style={styles.mainPageWrapper}>
-        {/* Intro */}
-        <View style={styles.introHeader}>
-          <Text style={[styles.pageTitle, { color: colors.text }]}>Courses</Text>
-          <Text style={[styles.pageSubtitle, { color: colors.subtext }]}>
-            Master essential disaster preparedness skills.
-          </Text>
+        {/* Header with Title & Add Course Button */}
+        <View style={styles.headerRow}>
+          <View style={styles.introHeader}>
+            <Text style={[styles.pageTitle, { color: colors.text }]}>Courses</Text>
+            <Text style={[styles.pageSubtitle, { color: colors.subtext }]}>
+              Master essential disaster preparedness skills.
+            </Text>
+          </View>
+
+          <TouchableOpacity
+            style={styles.addCourseBtn}
+            onPress={() => setModalVisible(true)}
+            activeOpacity={0.85}
+          >
+            <Ionicons name="add-circle" size={20} color="#FFFFFF" style={{ marginRight: 6 }} />
+            <Text style={styles.addCourseBtnText}>Add Course</Text>
+          </TouchableOpacity>
         </View>
 
         {/* Overall Progress Card */}
@@ -163,7 +298,7 @@ export default function CourseScreen({ navigation, searchQuery = '' }) {
           <Text style={[styles.progressSub, { color: colors.subtext }]}>
             {completedCoursesCount === 0 && inProgressCoursesCount === 0
               ? 'No courses started yet.'
-              : `${completedCoursesCount} of ${courses.length} courses completed`}
+              : `${completedCoursesCount} of ${allCourses.length} courses completed`}
           </Text>
 
           <View style={[styles.progressTrack, { backgroundColor: colors.trackBg }]}>
@@ -298,6 +433,64 @@ export default function CourseScreen({ navigation, searchQuery = '' }) {
           })}
         </View>
       </View>
+
+      {/* Add New Course Modal Popup */}
+      <Modal visible={modalVisible} animationType="slide" transparent={true}>
+        <View style={styles.modalOverlay}>
+          <View style={[styles.modalCard, { backgroundColor: colors.modalBg, borderColor: colors.border }]}>
+            <View style={styles.modalHeader}>
+              <Text style={[styles.modalTitle, { color: colors.text }]}>➕ Add New Course</Text>
+              <TouchableOpacity onPress={() => setModalVisible(false)}>
+                <Ionicons name="close-circle" size={26} color={colors.subtext} />
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView contentContainerStyle={styles.modalForm}>
+              <Text style={[styles.label, { color: colors.text }]}>Course Title *</Text>
+              <TextInput
+                style={[styles.input, { backgroundColor: colors.inputBg, color: colors.text, borderColor: colors.border }]}
+                placeholder="e.g. Heatwave Safety"
+                placeholderTextColor={colors.subtext}
+                value={newTitle}
+                onChangeText={setNewTitle}
+              />
+
+              <Text style={[styles.label, { color: colors.text }]}>Category</Text>
+              <TextInput
+                style={[styles.input, { backgroundColor: colors.inputBg, color: colors.text, borderColor: colors.border }]}
+                placeholder="e.g. WEATHER SAFETY"
+                placeholderTextColor={colors.subtext}
+                value={newCategory}
+                onChangeText={setNewCategory}
+              />
+
+              <Text style={[styles.label, { color: colors.text }]}>Short Description *</Text>
+              <TextInput
+                style={[styles.input, { backgroundColor: colors.inputBg, color: colors.text, borderColor: colors.border }]}
+                placeholder="Brief summary of what students will learn..."
+                placeholderTextColor={colors.subtext}
+                value={newDesc}
+                onChangeText={setNewDesc}
+              />
+
+              <Text style={[styles.label, { color: colors.text }]}>Lesson Content</Text>
+              <TextInput
+                style={[styles.input, styles.textArea, { backgroundColor: colors.inputBg, color: colors.text, borderColor: colors.border }]}
+                placeholder="Enter detailed safety guidelines & lesson content..."
+                placeholderTextColor={colors.subtext}
+                multiline={true}
+                numberOfLines={4}
+                value={newLessonContent}
+                onChangeText={setNewLessonContent}
+              />
+
+              <TouchableOpacity style={styles.saveCourseBtn} onPress={handleCreateCourse} activeOpacity={0.85}>
+                <Text style={styles.saveCourseBtnText}>Create & Publish Course</Text>
+              </TouchableOpacity>
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
     </ScrollView>
   );
 }
@@ -317,8 +510,14 @@ const styles = StyleSheet.create({
     width: '100%',
     maxWidth: 1400,
   },
-  introHeader: {
+  headerRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     marginBottom: 16,
+  },
+  introHeader: {
+    flex: 1,
   },
   pageTitle: {
     fontSize: 26,
@@ -328,6 +527,24 @@ const styles = StyleSheet.create({
   pageSubtitle: {
     fontSize: 14,
     lineHeight: 20,
+  },
+  addCourseBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#2563EB',
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    borderRadius: 12,
+    shadowColor: '#2563EB',
+    shadowOpacity: 0.3,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 3 },
+    elevation: 3,
+  },
+  addCourseBtnText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '800',
   },
   progressCard: {
     borderRadius: 18,
@@ -342,7 +559,7 @@ const styles = StyleSheet.create({
   },
   cardHeaderRow: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    justify.content: 'space-between',
     alignItems: 'center',
     marginBottom: 4,
   },
@@ -456,7 +673,7 @@ const styles = StyleSheet.create({
   },
   progressDetailHeader: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    justify.content: 'space-between',
     alignItems: 'center',
     marginBottom: 4,
   },
@@ -484,6 +701,64 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   actionBtnText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '800',
+  },
+
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 20,
+  },
+  modalCard: {
+    width: '100%',
+    maxWidth: 550,
+    borderRadius: 20,
+    borderWidth: 1,
+    padding: 20,
+    shadowColor: '#000',
+    shadowOpacity: 0.15,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 6 },
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: '900',
+  },
+  modalForm: {
+    gap: 12,
+  },
+  label: {
+    fontSize: 13,
+    fontWeight: '700',
+  },
+  input: {
+    borderWidth: 1,
+    borderRadius: 12,
+    padding: 12,
+    fontSize: 14,
+  },
+  textArea: {
+    minHeight: 90,
+    textAlignVertical: 'top',
+  },
+  saveCourseBtn: {
+    backgroundColor: '#10B981',
+    paddingVertical: 14,
+    borderRadius: 14,
+    alignItems: 'center',
+    marginTop: 8,
+  },
+  saveCourseBtnText: {
     color: '#FFFFFF',
     fontSize: 14,
     fontWeight: '800',

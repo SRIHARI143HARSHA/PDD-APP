@@ -377,9 +377,9 @@ export default function AlertScreen({ searchQuery = '' }) {
               Hazard Monitoring Advisories ({visibleAlerts.length})
             </Text>
             <View style={[styles.statusSummaryBadge, { backgroundColor: isSevereActive ? '#FEF2F2' : '#F1F5F9' }]}>
-              <View style={[styles.statusDot, { backgroundColor: isSevereActive ? '#EF4444' : '#64748B' }]} />
-              <Text style={[styles.statusSummaryText, { color: isSevereActive ? '#DC2626' : '#64748B' }]}>
-                {isSevereActive ? 'ACTIVE HAZARD' : 'ALL ALERTS INACTIVE'}
+              <View style={[styles.statusDot, { backgroundColor: isSevereActive ? '#EF4444' : '#10B981' }]} />
+              <Text style={[styles.statusSummaryText, { color: isSevereActive ? '#DC2626' : '#059669' }]}>
+                {isSevereActive ? 'ACTIVE HAZARD' : '0 ACTIVE ALERTS'}
               </Text>
             </View>
           </View>

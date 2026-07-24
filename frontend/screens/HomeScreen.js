@@ -16,7 +16,6 @@ import {
 import { courseData } from '../../data/courseData';
 import { db } from '../../database/config';
 import { ThemeContext } from '../context/ThemeContext';
-import { defaultAlerts } from './AlertScreen';
 
 const quickActions = [
   { label: 'Quizzes', icon: 'school-outline', screen: 'QuizTopics', accent: ['#2563EB', '#60A5FA'] },
@@ -37,7 +36,7 @@ function getWeatherInfo(code) {
 }
 
 export default function HomeScreen({ navigation }) {
-  const [activeAlertsCount, setActiveAlertsCount] = useState(defaultAlerts.length);
+  const [activeAlertsCount, setActiveAlertsCount] = useState(0);
   const [quizzesCompleted, setQuizzesCompleted] = useState(0);
   const [coursesCompleted, setCoursesCompleted] = useState(0);
   const [preparednessPercent, setPreparednessPercent] = useState(0);
@@ -127,7 +126,14 @@ export default function HomeScreen({ navigation }) {
     const loadAlerts = async () => {
       try {
         const querySnapshot = await getDocs(collection(db, 'alerts'));
-        setActiveAlertsCount(querySnapshot.size);
+        let activeCount = 0;
+        querySnapshot.forEach((doc) => {
+          const data = doc.data();
+          if (data && (data.status === 'active' || data.isActive === true || data.active === true)) {
+            activeCount++;
+          }
+        });
+        setActiveAlertsCount(activeCount);
       } catch (error) {
         setActiveAlertsCount(0);
       }

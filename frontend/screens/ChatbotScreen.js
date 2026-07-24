@@ -74,18 +74,18 @@ export default function ChatbotScreen() {
     setChat((prev) => [...prev, userMsg]);
     setMessage('');
     setLoading(true);
+
+    // Stage 1 (0.0s - 1.8s): "Thinking..."
     setThinkingText('Thinking...');
 
-    // Animate multi-stage AI reasoning steps over 3.8 seconds (3 to 4 sec delay requested)
-    const timer1 = setTimeout(() => setThinkingText('Analyzing emergency protocols & safety guidelines...'), 900);
-    const timer2 = setTimeout(() => setThinkingText('Consulting global disaster management knowledge base...'), 1900);
-    const timer3 = setTimeout(() => setThinkingText('Synthesizing detailed emergency advice...'), 2900);
+    // Stage 2 (1.8s - 3.6s): "Analyzing..."
+    const timer1 = setTimeout(() => setThinkingText('Analyzing...'), 1800);
 
     try {
-      // Promise.all enforces realistic 3.8s ChatGPT/Gemini AI reasoning delay
+      // Promise.all enforces realistic 3.6s delay using ONLY two loading words
       const [reply] = await Promise.all([
         askChatbot(query),
-        new Promise((resolve) => setTimeout(resolve, 3800)),
+        new Promise((resolve) => setTimeout(resolve, 3600)),
       ]);
 
       const botMsg = {
@@ -103,8 +103,6 @@ export default function ChatbotScreen() {
       setChat((prev) => [...prev, botMsg]);
     } finally {
       clearTimeout(timer1);
-      clearTimeout(timer2);
-      clearTimeout(timer3);
       setLoading(false);
     }
   };
@@ -189,7 +187,7 @@ export default function ChatbotScreen() {
           />
         )}
 
-        {/* Loading / Typing State with Dynamic 3.8s Thinking Animation */}
+        {/* Loading / Typing State with 3.6s Delay Using Only 2 Words: "Thinking..." & "Analyzing..." */}
         {loading && (
           <View style={styles.typingContainer}>
             <View style={styles.botAvatar}>

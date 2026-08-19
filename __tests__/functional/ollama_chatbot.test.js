@@ -1,6 +1,10 @@
 import { askChatbot } from '../../frontend/services/chatbotService';
 
 describe('Ollama AI Disaster Chatbot Service Test Suite', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
   it('should reject empty or whitespace message query', async () => {
     const res = await askChatbot('   ');
     expect(res).toBeDefined();
@@ -8,7 +12,12 @@ describe('Ollama AI Disaster Chatbot Service Test Suite', () => {
     expect(res.code).toBe('EMPTY_MESSAGE');
   });
 
-  it('should format disaster query and include weather context', async () => {
+  it('should format disaster query and send payload to Express API', async () => {
+    global.fetch = jest.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ response: 'Here is your heavy rain safety guidance.' }),
+    });
+
     const mockWeather = {
       location: 'Thandalam, Chennai',
       temp: 34,
@@ -29,6 +38,8 @@ describe('Ollama AI Disaster Chatbot Service Test Suite', () => {
     });
 
     expect(res).toBeDefined();
-    expect(res.response || res.message).toBeDefined();
+    expect(res.success).toBe(true);
+    expect(res.response).toContain('heavy rain safety');
+    expect(global.fetch).toHaveBeenCalled();
   });
 });

@@ -54,6 +54,11 @@ describe('Chatbot Module', () => {
 
 describe('Frontend chatbot guidance', () => {
   it('should provide actionable flood guidance for flood-related questions', async () => {
+    global.fetch = jest.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ response: 'Move to higher ground immediately during a flood.' }),
+    });
+
     const { askChatbot } = require('../frontend/services/chatbotService');
     const response = await askChatbot('What should I do during a flood?');
 
@@ -62,6 +67,11 @@ describe('Frontend chatbot guidance', () => {
   });
 
   it('should explain what a flood is for definition questions', async () => {
+    global.fetch = jest.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ response: 'A flood is an overflow of water onto dry land.' }),
+    });
+
     const { askChatbot } = require('../frontend/services/chatbotService');
     const response = await askChatbot('what is flood');
 

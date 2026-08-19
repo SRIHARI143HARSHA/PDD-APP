@@ -54,7 +54,27 @@ app.get('/api/health', (req, res) => {
 app.post('/api/chat', async (req, res) => {
   const { message, currentWeather, activeAlerts, conversationHistory = [] } = req.body || {};
 
+  console.log(`\n[CHAT] ==========================================`);
+  console.log(`[CHAT] Request received`);
+  console.log(`[CHAT] Message: "${message ? message.trim() : ''}"`);
+  console.log(`[CHAT] Ollama URL: ${OLLAMA_BASE_URL}/api/chat`);
+  console.log(`[CHAT] Model: ${OLLAMA_MODEL}`);
+
+  if (currentWeather) {
+    console.log(`[CHAT] Weather Context Provided: Temp=${currentWeather.temp}°C, Condition=${currentWeather.condition}, Location=${currentWeather.location || 'Local Area'}`);
+  } else {
+    console.log(`[CHAT] Weather Context: None`);
+  }
+
+  if (Array.isArray(activeAlerts) && activeAlerts.length > 0) {
+    console.log(`[CHAT] Active Alerts Context: ${activeAlerts.length} active alert(s)`);
+  } else {
+    console.log(`[CHAT] Active Alerts Context: No active alerts`);
+  }
+
   if (!message || typeof message !== 'string' || !message.trim()) {
+    console.log(`[CHAT] Rejected empty message`);
+    console.log(`[CHAT] ==========================================\n`);
     return res.status(400).json({
       error: true,
       code: 'EMPTY_MESSAGE',
@@ -101,9 +121,11 @@ app.post('/api/chat', async (req, res) => {
     { role: 'user', content: message.trim() },
   ];
 
+  console.log(`[CHAT] Calling Ollama API...`);
+
   try {
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 20000); // 20s timeout
+    const timeoutId = setTimeout(() => controller.abort(), 90000); // 90s timeout for local LLM generation
 
     const ollamaResponse = await fetch(`${OLLAMA_BASE_URL}/api/chat`, {
       method: 'POST',
@@ -119,17 +141,22 @@ app.post('/api/chat', async (req, res) => {
     clearTimeout(timeoutId);
 
     if (!ollamaResponse.ok) {
+      console.error(`[CHAT] Ollama returned error status: ${ollamaResponse.status}`);
+      console.log(`[CHAT] ==========================================\n`);
+
       if (ollamaResponse.status === 404) {
         return res.status(404).json({
           error: true,
           code: 'MODEL_UNAVAILABLE',
-          message: `Model '${OLLAMA_MODEL}' is not available in Ollama. Please run 'ollama pull ${OLLAMA_MODEL}'.`,
+          message: `AI assistant is currently unavailable. Please try again.`,
+          devDetail: `Model '${OLLAMA_MODEL}' was not found in Ollama. Run 'ollama pull ${OLLAMA_MODEL}'.`,
         });
       }
       return res.status(500).json({
         error: true,
         code: 'OLLAMA_ERROR',
-        message: 'Ollama API returned an error.',
+        message: 'AI assistant is currently unavailable. Please try again.',
+        devDetail: `Ollama API returned HTTP ${ollamaResponse.status}`,
       });
     }
 
@@ -137,12 +164,18 @@ app.post('/api/chat', async (req, res) => {
     const replyText = data.message?.content || data.response || '';
 
     if (!replyText) {
+      console.error(`[CHAT] Received empty response content from Ollama`);
+      console.log(`[CHAT] ==========================================\n`);
       return res.status(500).json({
         error: true,
         code: 'EMPTY_RESPONSE',
-        message: 'Received empty response from LLM.',
+        message: 'AI assistant is currently unavailable. Please try again.',
+        devDetail: 'Ollama response body contained no text content.',
       });
     }
+
+    console.log(`[CHAT] Ollama response received successfully (${replyText.length} characters)`);
+    console.log(`[CHAT] ==========================================\n`);
 
     return res.json({
       response: replyText,
@@ -150,18 +183,24 @@ app.post('/api/chat', async (req, res) => {
       timestamp: new Date().toISOString(),
     });
   } catch (err) {
+    console.error(`[CHAT] Ollama connection failed!`);
+    console.error(`[CHAT] Error Detail: ${err.message}`);
+    console.log(`[CHAT] ==========================================\n`);
+
     if (err.name === 'AbortError') {
       return res.status(504).json({
         error: true,
         code: 'TIMEOUT',
-        message: 'Ollama request timed out after 20 seconds.',
+        message: 'AI assistant is currently unavailable. Please try again.',
+        devDetail: 'Ollama request timed out after 25 seconds.',
       });
     }
 
     return res.status(503).json({
       error: true,
       code: 'OLLAMA_UNAVAILABLE',
-      message: 'AI assistant is currently unavailable.',
+      message: 'AI assistant is currently unavailable. Please try again.',
+      devDetail: `Could not connect to Ollama at ${OLLAMA_BASE_URL}: ${err.message}`,
     });
   }
 });

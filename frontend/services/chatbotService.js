@@ -1,5 +1,3 @@
-const { getConversationalAIResponse } = require('../../backend/chatbot');
-
 const getEnvVar = (key) => {
   try {
     if (typeof process !== 'undefined' && process && process.env) {
@@ -19,8 +17,8 @@ const getApiUrl = () => {
 
 /**
  * Ask Ollama AI Chatbot via Express Backend Bridge.
- * Automatically injects live weather and active alerts context.
- * Returns a String-compatible object for 100% backward & forward compatibility.
+ * Transmits live weather and active alerts context to Express -> Ollama.
+ * Strictly uses Ollama/Express backend. No rule-based offline fallback.
  */
 export async function askChatbot(question, context = {}) {
   const query = (question || '').trim();
@@ -39,7 +37,7 @@ export async function askChatbot(question, context = {}) {
 
   try {
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 12000);
+    const timeoutId = setTimeout(() => controller.abort(), 90000);
 
     const res = await fetch(`${apiUrl}/api/chat`, {
       method: 'POST',
@@ -62,23 +60,29 @@ export async function askChatbot(question, context = {}) {
         return Object.assign(String(text), { success: true, response: text });
       }
     }
-  } catch (err) {}
 
-  // Fallback to built-in local offline disaster response engine
-  const offlineReply = getConversationalAIResponse(query);
-  if (offlineReply) {
-    return Object.assign(String(offlineReply), {
-      success: true,
-      response: offlineReply,
-      isOfflineFallback: true,
+    const errData = await res.json().catch(() => ({}));
+    const userErrMsg = errData.message || 'AI assistant is currently unavailable. Please try again.';
+    if (errData.devDetail) {
+      console.warn('[chatbotService] Dev Error Detail:', errData.devDetail);
+    }
+
+    return Object.assign(String(userErrMsg), {
+      error: true,
+      code: errData.code || 'API_ERROR',
+      message: userErrMsg,
+      devDetail: errData.devDetail,
+      response: userErrMsg,
+    });
+  } catch (err) {
+    console.error('[chatbotService] Network/Fetch Error:', err.message);
+    const userErrMsg = 'AI assistant is currently unavailable. Please try again.';
+    return Object.assign(String(userErrMsg), {
+      error: true,
+      code: 'NETWORK_ERROR',
+      message: userErrMsg,
+      devDetail: `Failed to connect to backend at ${apiUrl}: ${err.message}`,
+      response: userErrMsg,
     });
   }
-
-  const fallbackErr = 'AI assistant is currently unavailable.';
-  return Object.assign(String(fallbackErr), {
-    error: true,
-    code: 'OLLAMA_UNAVAILABLE',
-    message: fallbackErr,
-    response: fallbackErr,
-  });
 }

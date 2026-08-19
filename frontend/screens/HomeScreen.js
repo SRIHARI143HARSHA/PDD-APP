@@ -18,6 +18,7 @@ import { courseData } from '../../data/courseData';
 import { db } from '../../database/config';
 import { ThemeContext } from '../context/ThemeContext';
 import { getItem } from '../services/storageService';
+import { generateWeatherAlerts } from '../utils/weatherAlertEngine';
 
 const quickActions = [
   { label: 'Quizzes', icon: 'school-outline', screen: 'QuizTopics', accent: ['#2563EB', '#60A5FA'] },
@@ -45,6 +46,8 @@ export default function HomeScreen({ navigation }) {
   const [villageName, setVillageName] = useState('Detecting location...');
   const [weatherData, setWeatherData] = useState(null);
   const [loadingWeather, setLoadingWeather] = useState(true);
+  const [weatherError, setWeatherError] = useState(false);
+  const [lastUpdatedTime, setLastUpdatedTime] = useState(null);
 
   const computePreparedness = useCallback(async () => {
     try {
@@ -139,106 +142,103 @@ export default function HomeScreen({ navigation }) {
     }, [loadQuizStats, loadCourseStats, computePreparedness, loadAlerts])
   );
 
-  useEffect(() => {
-    let isMounted = true;
+  const fetchLocationAndWeather = async () => {
+    setLoadingWeather(true);
+    setWeatherError(false);
+    try {
+      let lat = 13.0281;
+      let lon = 80.0158;
+      let locationLabel = 'Local Area';
 
-    const fetchLocationAndWeather = async () => {
-      try {
-        let lat = 13.0281;
-        let lon = 80.0158;
-        let locationLabel = 'Local Area';
-
-        if (typeof navigator !== 'undefined' && navigator.geolocation) {
-          await new Promise((resolve) => {
-            navigator.geolocation.getCurrentPosition(
-              (pos) => {
-                lat = pos.coords.latitude;
-                lon = pos.coords.longitude;
-                resolve();
-              },
-              async () => {
-                try {
-                  const { status } = await Location.requestForegroundPermissionsAsync();
-                  if (status === 'granted') {
-                    const loc = await Location.getCurrentPositionAsync({});
-                    lat = loc.coords.latitude;
-                    lon = loc.coords.longitude;
-                  }
-                } catch (e) {}
-                resolve();
-              },
-              { timeout: 5000 }
-            );
-          });
-        }
-
-        try {
-          const geoRes = await fetch(
-            `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}`
+      if (typeof navigator !== 'undefined' && navigator.geolocation) {
+        await new Promise((resolve) => {
+          navigator.geolocation.getCurrentPosition(
+            (pos) => {
+              lat = pos.coords.latitude;
+              lon = pos.coords.longitude;
+              resolve();
+            },
+            async () => {
+              try {
+                const { status } = await Location.requestForegroundPermissionsAsync();
+                if (status === 'granted') {
+                  const loc = await Location.getCurrentPositionAsync({});
+                  lat = loc.coords.latitude;
+                  lon = loc.coords.longitude;
+                }
+              } catch (e) {}
+              resolve();
+            },
+            { timeout: 5000 }
           );
-          const geoData = await geoRes.json();
-          if (geoData && geoData.address) {
-            const a = geoData.address;
-            let village = a.suburb || a.village || a.town || a.neighbourhood || a.city_district || a.county || a.city || 'Thandalam';
-            const city = a.city || a.state_district || a.state || '';
-            let rawLabel = city && city !== village ? `${village}, ${city}` : village;
-            if (rawLabel.includes('Mevalurkuppam') || rawLabel.includes('22H8+654')) {
-              rawLabel = 'Thandalam, Chennai';
-            }
-            locationLabel = rawLabel;
-          }
-        } catch (e) {}
-
-        if (isMounted) setVillageName(locationLabel);
-
-        const res = await fetch(
-          `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current_weather=true&hourly=relative_humidity_2m`
-        );
-        const data = await res.json();
-
-        if (isMounted && data && data.current_weather) {
-          const cw = data.current_weather;
-          const info = getWeatherInfo(cw.weathercode);
-          const humidity = data.hourly?.relative_humidity_2m?.[0] || 65;
-
-          setWeatherData({
-            temp: Math.round(cw.temperature),
-            windSpeed: Math.round(cw.windspeed),
-            condition: info.label,
-            icon: info.icon,
-            color: info.color,
-            humidity: humidity,
-          });
-        }
-      } catch (e) {
-        if (isMounted) {
-          setWeatherData({
-            temp: 28,
-            windSpeed: 14,
-            condition: 'Clear Sky',
-            icon: 'sunny-outline',
-            color: '#F59E0B',
-            humidity: 60,
-          });
-        }
-      } finally {
-        if (isMounted) setLoadingWeather(false);
+        });
       }
-    };
 
+      try {
+        const geoRes = await fetch(
+          `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}`
+        );
+        const geoData = await geoRes.json();
+        if (geoData && geoData.address) {
+          const a = geoData.address;
+          let village = a.suburb || a.village || a.town || a.neighbourhood || a.city_district || a.county || a.city || 'Thandalam';
+          const city = a.city || a.state_district || a.state || '';
+          let rawLabel = city && city !== village ? `${village}, ${city}` : village;
+          locationLabel = rawLabel;
+        }
+      } catch (e) {}
+
+      setVillageName(locationLabel);
+
+      const res = await fetch(
+        `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current_weather=true&hourly=relative_humidity_2m,precipitation`
+      );
+      const data = await res.json();
+
+      if (data && data.current_weather) {
+        const cw = data.current_weather;
+        const info = getWeatherInfo(cw.weathercode);
+        const currentHour = new Date().getHours();
+        const humidity = data.hourly?.relative_humidity_2m?.[currentHour] || data.hourly?.relative_humidity_2m?.[0] || 65;
+        const rainfall = data.hourly?.precipitation?.[currentHour] || data.hourly?.precipitation?.[0] || 0;
+        const temp = Math.round(cw.temperature);
+        const feelsLike = Math.round(temp + (humidity > 70 ? 2 : 0));
+
+        setWeatherData({
+          temp: temp,
+          feelsLike: feelsLike,
+          windSpeed: Math.round(cw.windspeed),
+          condition: info.label,
+          weathercode: cw.weathercode,
+          icon: info.icon,
+          color: info.color,
+          humidity: humidity,
+          rainfall: Math.round(rainfall * 10) / 10,
+        });
+
+        const now = new Date();
+        const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        setLastUpdatedTime(timeStr);
+      } else {
+        setWeatherError(true);
+      }
+    } catch (e) {
+      setWeatherError(true);
+    } finally {
+      setLoadingWeather(false);
+    }
+  };
+
+  useEffect(() => {
     fetchLocationAndWeather();
-
-    return () => {
-      isMounted = false;
-    };
   }, []);
 
   useEffect(() => {
     computePreparedness();
   }, [quizzesCompleted, coursesCompleted, computePreparedness]);
 
-  const isHighTemp = weatherData && weatherData.temp >= 40;
-  const totalActiveAlerts = activeAlertsCount + (isHighTemp ? 1 : 0);
+  const activeWeatherAlerts = generateWeatherAlerts(weatherData);
+  const totalActiveAlerts = activeAlertsCount + activeWeatherAlerts.length;
 
   const stats = [
     {
@@ -250,7 +250,7 @@ export default function HomeScreen({ navigation }) {
     {
       label: 'Active Alerts',
       value: `${totalActiveAlerts}`,
-      note: isHighTemp ? '⚠️ High Temp Alert (≥40°C)' : 'Stay updated!',
+      note: activeWeatherAlerts.length > 0 ? `${activeWeatherAlerts.length} Weather Alert${activeWeatherAlerts.length > 1 ? 's' : ''} Active` : 'Stay updated!',
     },
     { label: 'Quizzes Completed', value: `${quizzesCompleted}`, note: 'Great job!' },
   ];
@@ -331,58 +331,109 @@ export default function HomeScreen({ navigation }) {
           </LinearGradient>
         </View>
 
-        {/* EXTREME HIGH TEMPERATURE (≥40°C) DASHBOARD ALERT MESSAGE BANNER */}
-        {isHighTemp && (
-          <TouchableOpacity
-            style={[
-              styles.highTempAlertBanner,
-              {
-                backgroundColor: isDark ? '#450A0A' : '#FEF2F2',
-                borderColor: '#EF4444',
-              },
-            ]}
-            onPress={() => navigation.navigate('Alerts')}
-            activeOpacity={0.85}
-          >
-            <View style={styles.highTempHeaderRow}>
-              <Ionicons name="warning" size={22} color="#EF4444" style={{ marginRight: 8 }} />
-              <Text style={[styles.highTempTitle, { color: isDark ? '#FCA5A5' : '#991B1B' }]}>
-                🚨 HIGH TEMPERATURE ALERT ({weatherData.temp}°C ≥ 40°C)
+        {/* REAL-TIME DYNAMIC WEATHER ALERTS SECTION */}
+        {loadingWeather ? null : activeWeatherAlerts.length > 0 ? (
+          <View style={styles.activeAlertsContainer}>
+            {activeWeatherAlerts.map((alert) => (
+              <View
+                key={alert.id}
+                style={[
+                  styles.dynamicAlertCard,
+                  {
+                    backgroundColor: isDark ? '#3B1212' : '#FEF2F2',
+                    borderColor: alert.color || '#EF4444',
+                  },
+                ]}
+              >
+                <View style={styles.alertHeaderRow}>
+                  <Text style={[styles.alertTitleText, { color: isDark ? '#FCA5A5' : '#991B1B' }]}>
+                    {alert.title}
+                  </Text>
+                  <View style={[styles.activeStatusBadge, { backgroundColor: alert.color || '#EF4444' }]}>
+                    <Text style={styles.activeBadgeText}>Status: Active</Text>
+                  </View>
+                </View>
+                <Text style={[styles.alertBodyText, { color: isDark ? '#FEE2E2' : '#7F1D1D' }]}>
+                  {alert.message}
+                </Text>
+                <View style={styles.alertFooterRow}>
+                  <Text style={[styles.alertMetaText, { color: isDark ? '#FCA5A5' : '#991B1B' }]}>
+                    📍 Location: <Text style={{ fontWeight: '800' }}>{villageName}</Text>
+                  </Text>
+                  {alert.value ? (
+                    <Text style={[styles.alertMetaText, { color: isDark ? '#FCA5A5' : '#991B1B' }]}>
+                      Level: <Text style={{ fontWeight: '800' }}>{alert.value}</Text>
+                    </Text>
+                  ) : null}
+                </View>
+              </View>
+            ))}
+          </View>
+        ) : (
+          <View style={[styles.noAlertsBanner, { backgroundColor: isDark ? '#064E3B' : '#ECFDF5', borderColor: '#10B981' }]}>
+            <Ionicons name="checkmark-circle" size={22} color="#10B981" style={{ marginRight: 8 }} />
+            <View style={{ flex: 1 }}>
+              <Text style={[styles.noAlertsTitle, { color: isDark ? '#A7F3D0' : '#065F46' }]}>
+                ✓ NO ACTIVE WEATHER ALERTS
+              </Text>
+              <Text style={[styles.noAlertsSub, { color: isDark ? '#D1FAE5' : '#047857' }]}>
+                Current weather conditions are normal.
               </Text>
             </View>
-            <Text style={[styles.highTempBody, { color: isDark ? '#FEE2E2' : '#7F1D1D' }]}>
-              Current temperature of <Text style={{ fontWeight: '900' }}>{weatherData.temp}°C</Text> in {villageName} reaches extreme heat safety threshold (40°C). Stay hydrated, avoid outdoor exertion, and keep cool.
-            </Text>
-          </TouchableOpacity>
+          </View>
         )}
 
-        {/* Live Weather & Detected Location Card */}
-        <TouchableOpacity
-          style={[styles.weatherBanner, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}
-          onPress={() => navigation.navigate('Alerts')}
-          activeOpacity={0.85}
-        >
+        {/* SEPARATE CURRENT WEATHER CARD */}
+        <View style={[styles.weatherBanner, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}>
           <View style={styles.weatherBannerHeader}>
-            <Ionicons name="navigate-circle" size={22} color="#2563EB" style={{ marginRight: 6 }} />
-            <Text style={[styles.weatherLocationText, { color: colors.text }]}>Detected Location: {villageName}</Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+              <Ionicons name="navigate-circle" size={20} color="#2563EB" style={{ marginRight: 6 }} />
+              <Text style={[styles.weatherLocationText, { color: colors.text }]}>{villageName}</Text>
+            </View>
+            {lastUpdatedTime ? (
+              <Text style={[styles.lastUpdatedText, { color: colors.secondaryText }]}>Updated: {lastUpdatedTime}</Text>
+            ) : null}
           </View>
 
           {loadingWeather ? (
-            <ActivityIndicator size="small" color="#2563EB" />
+            <View style={{ paddingVertical: 14, alignItems: 'center' }}>
+              <ActivityIndicator size="small" color="#2563EB" />
+              <Text style={{ fontSize: 12, color: colors.secondaryText, marginTop: 6 }}>Fetching live weather API...</Text>
+            </View>
+          ) : weatherError ? (
+            <View style={{ paddingVertical: 12, alignItems: 'center' }}>
+              <Text style={{ fontSize: 13, color: '#EF4444', fontWeight: '700' }}>Weather data unavailable</Text>
+              {lastUpdatedTime ? (
+                <Text style={{ fontSize: 11, color: colors.secondaryText, marginTop: 2 }}>Last successful update: {lastUpdatedTime}</Text>
+              ) : null}
+              <TouchableOpacity style={styles.retryBtn} onPress={fetchLocationAndWeather} activeOpacity={0.85}>
+                <Ionicons name="refresh-outline" size={14} color="#FFFFFF" style={{ marginRight: 4 }} />
+                <Text style={{ color: '#FFFFFF', fontSize: 12, fontWeight: '700' }}>Retry</Text>
+              </TouchableOpacity>
+            </View>
           ) : weatherData ? (
-            <View style={styles.weatherRow}>
-              <View style={styles.weatherTempWrap}>
-                <Text style={[styles.weatherTempText, { color: colors.text }]}>{weatherData.temp}°C</Text>
-                <Text style={[styles.weatherCondText, { color: weatherData.color }]}>{weatherData.condition}</Text>
+            <View style={styles.weatherMainContent}>
+              <View style={styles.weatherRowTop}>
+                <View style={styles.weatherTempWrap}>
+                  <Text style={[styles.weatherTempText, { color: colors.text }]}>{weatherData.temp}°C</Text>
+                  <Text style={[styles.feelsLikeText, { color: colors.secondaryText }]}>
+                    Feels like {weatherData.feelsLike}°C
+                  </Text>
+                  <Text style={[styles.weatherCondText, { color: weatherData.color }]}>
+                    {weatherData.condition}
+                  </Text>
+                </View>
+                <Ionicons name={weatherData.icon} size={48} color={weatherData.color} />
               </View>
-              <Ionicons name={weatherData.icon} size={32} color={weatherData.color} />
+
               <View style={styles.weatherMetricsRow}>
-                <Text style={[styles.weatherMetricTag, { color: colors.secondaryText }]}>💨 {weatherData.windSpeed} km/h</Text>
-                <Text style={[styles.weatherMetricTag, { color: colors.secondaryText }]}>💧 {weatherData.humidity}%</Text>
+                <Text style={[styles.weatherMetricTag, { color: colors.secondaryText }]}>💧 Humidity: {weatherData.humidity}%</Text>
+                <Text style={[styles.weatherMetricTag, { color: colors.secondaryText }]}>💨 Wind: {weatherData.windSpeed} km/h</Text>
+                <Text style={[styles.weatherMetricTag, { color: colors.secondaryText }]}>🌧️ Rain: {weatherData.rainfall} mm</Text>
               </View>
             </View>
           ) : null}
-        </TouchableOpacity>
+        </View>
 
         {/* Quick Stats Grid */}
         <View style={styles.quickStatsRow}>
@@ -423,13 +474,24 @@ export default function HomeScreen({ navigation }) {
             <View style={styles.assistantBadge}>
               <Text style={styles.assistantBadgeText}>AI</Text>
             </View>
-            <Text style={[styles.sectionTitle, { color: colors.text }]}>Assistant</Text>
+            <View>
+              <Text style={[styles.sectionTitle, { color: colors.text, marginBottom: 0 }]}>
+                AI Emergency Assistant
+              </Text>
+              <Text style={{ fontSize: 12, color: colors.secondaryText }}>
+                Ask any disaster or safety question
+              </Text>
+            </View>
           </View>
           <Text style={[styles.assistantCopy, { color: colors.secondaryText }]}>
-            Ask the preparedness assistant for evacuation tips, disaster checklists, or location-based safety guidance.
+            Get immediate safety advice, emergency protocols, and medical first-aid guidance.
           </Text>
-          <TouchableOpacity style={styles.secondaryButton} onPress={() => navigation.navigate('AI Chat')}>
-            <Text style={styles.secondaryButtonText}>Open AI assistant</Text>
+          <TouchableOpacity
+            style={styles.secondaryButton}
+            onPress={() => navigation.navigate('AI Chat')}
+            activeOpacity={0.85}
+          >
+            <Text style={styles.secondaryButtonText}>Chat with AI Assistant</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -440,194 +502,257 @@ export default function HomeScreen({ navigation }) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F8FAFC',
   },
   contentContainer: {
-    paddingHorizontal: 16,
-    paddingTop: 16,
-    paddingBottom: 28,
+    padding: 16,
+    paddingBottom: 36,
   },
   heroWrapper: {
-    marginBottom: 16,
+    maxWidth: 1200,
+    width: '100%',
+    alignSelf: 'center',
+    marginBottom: 20,
   },
   heroCard: {
-    position: 'relative',
-    width: '100%',
-    minHeight: 310,
-    borderRadius: 18,
+    height: 180,
+    borderRadius: 20,
     overflow: 'hidden',
     marginBottom: 16,
-    backgroundColor: '#020A19',
-    shadowColor: '#000',
-    shadowOpacity: 0.16,
-    shadowRadius: 14,
-    shadowOffset: { width: 0, height: 6 },
-    elevation: 5,
+    position: 'relative',
   },
   heroBackground: {
-    position: 'absolute',
-    left: 0,
-    top: 0,
-    right: 0,
-    bottom: 0,
     width: '100%',
     height: '100%',
+    position: 'absolute',
   },
   heroOverlay: {
     flex: 1,
-    padding: 28,
+    padding: 20,
     justifyContent: 'center',
-    minHeight: 310,
   },
   heroLeftContent: {
     maxWidth: 480,
   },
   heroTitle: {
-    fontSize: 32,
+    fontSize: 22,
     fontWeight: '900',
     color: '#FFFFFF',
-    lineHeight: 38,
-    marginBottom: 10,
-    letterSpacing: -0.5,
-    textShadowColor: 'rgba(0, 0, 0, 0.7)',
-    textShadowOffset: { width: 0, height: 2 },
-    textShadowRadius: 4,
+    marginBottom: 4,
   },
   heroSubtitle: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: 'rgba(255, 255, 255, 0.92)',
-    lineHeight: 22,
-    marginBottom: 22,
-    textShadowColor: 'rgba(0, 0, 0, 0.7)',
-    textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 3,
+    fontSize: 12,
+    color: 'rgba(255, 255, 255, 0.85)',
+    marginBottom: 14,
+    lineHeight: 16,
   },
   heroButtonRow: {
     flexDirection: 'row',
-    alignItems: 'center',
-    flexWrap: 'wrap',
-    gap: 12,
+    gap: 10,
   },
   exploreButton: {
+    backgroundColor: '#2563EB',
+    paddingVertical: 8,
+    paddingHorizontal: 14,
+    borderRadius: 12,
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#2563EB',
-    paddingVertical: 12,
-    paddingHorizontal: 20,
-    borderRadius: 12,
-    shadowColor: '#2563EB',
-    shadowOpacity: 0.4,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 3,
   },
   exploreButtonText: {
     color: '#FFFFFF',
-    fontSize: 14,
     fontWeight: '700',
+    fontSize: 12,
   },
   alertsButton: {
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    paddingVertical: 8,
+    paddingHorizontal: 14,
+    borderRadius: 12,
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(15, 23, 42, 0.55)',
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.35)',
-    paddingVertical: 12,
-    paddingHorizontal: 20,
-    borderRadius: 12,
+    borderColor: 'rgba(255, 255, 255, 0.3)',
   },
   alertsButtonText: {
     color: '#FFFFFF',
-    fontSize: 14,
     fontWeight: '700',
+    fontSize: 12,
   },
   buttonIcon: {
-    marginRight: 8,
+    marginRight: 6,
   },
-  weatherBanner: {
+  activeAlertsContainer: {
+    marginBottom: 16,
+    gap: 10,
+  },
+  dynamicAlertCard: {
+    borderRadius: 16,
+    borderWidth: 1.5,
+    padding: 14,
+    shadowColor: '#EF4444',
+    shadowOpacity: 0.12,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 3 },
+    elevation: 3,
+  },
+  alertHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 6,
+  },
+  alertTitleText: {
+    fontSize: 14,
+    fontWeight: '900',
+    letterSpacing: 0.3,
+  },
+  activeStatusBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 8,
+  },
+  activeBadgeText: {
+    color: '#FFFFFF',
+    fontSize: 10,
+    fontWeight: '800',
+    textTransform: 'uppercase',
+  },
+  alertBodyText: {
+    fontSize: 13,
+    lineHeight: 18,
+    fontWeight: '500',
+    marginBottom: 8,
+  },
+  alertFooterRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  alertMetaText: {
+    fontSize: 11,
+  },
+  noAlertsBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 14,
     borderRadius: 16,
     borderWidth: 1,
-    padding: 14,
+    marginBottom: 16,
+  },
+  noAlertsTitle: {
+    fontSize: 13,
+    fontWeight: '900',
+    letterSpacing: 0.3,
+  },
+  noAlertsSub: {
+    fontSize: 12,
+    fontWeight: '600',
+    marginTop: 1,
+  },
+  weatherBanner: {
+    borderRadius: 18,
+    borderWidth: 1,
+    padding: 16,
     marginBottom: 16,
     shadowColor: '#000',
     shadowOpacity: 0.04,
-    shadowRadius: 6,
-    shadowOffset: { width: 0, height: 2 },
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 3 },
   },
   weatherBannerHeader: {
     flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 8,
+    marginBottom: 10,
   },
   weatherLocationText: {
     fontSize: 14,
     fontWeight: '800',
   },
-  weatherRow: {
+  lastUpdatedText: {
+    fontSize: 11,
+  },
+  weatherMainContent: {
+    gap: 10,
+  },
+  weatherRowTop: {
     flexDirection: 'row',
-    alignItems: 'center',
     justifyContent: 'space-between',
+    alignItems: 'center',
   },
   weatherTempWrap: {
-    flexDirection: 'row',
-    alignItems: 'baseline',
-    gap: 8,
+    justifyContent: 'center',
   },
   weatherTempText: {
-    fontSize: 24,
+    fontSize: 28,
     fontWeight: '900',
+    lineHeight: 32,
+  },
+  feelsLikeText: {
+    fontSize: 12,
+    fontWeight: '600',
+    marginTop: 2,
   },
   weatherCondText: {
-    fontSize: 13,
-    fontWeight: '800',
+    fontSize: 14,
+    fontWeight: '700',
+    marginTop: 2,
   },
   weatherMetricsRow: {
     flexDirection: 'row',
-    gap: 10,
+    flexWrap: 'wrap',
+    gap: 12,
+    paddingTop: 8,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(148, 163, 184, 0.15)',
   },
   weatherMetricTag: {
     fontSize: 12,
     fontWeight: '600',
   },
+  retryBtn: {
+    backgroundColor: '#2563EB',
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 8,
+  },
   quickStatsRow: {
     flexDirection: 'row',
-    gap: 12,
+    flexWrap: 'wrap',
+    gap: 10,
   },
   statCard: {
     flex: 1,
-    borderRadius: 16,
+    minWidth: 140,
+    borderRadius: 14,
     borderWidth: 1,
-    padding: 14,
-    shadowColor: '#000',
-    shadowOpacity: 0.04,
-    shadowRadius: 6,
-    shadowOffset: { width: 0, height: 2 },
+    padding: 12,
   },
   statValue: {
-    fontSize: 20,
-    fontWeight: '800',
-    marginBottom: 2,
+    fontSize: 18,
+    fontWeight: '900',
   },
   statLabel: {
     fontSize: 12,
     fontWeight: '700',
-  },
-  statNote: {
-    fontSize: 11,
     marginTop: 2,
   },
+  statNote: {
+    fontSize: 10,
+    marginTop: 4,
+  },
   sectionGrid: {
-    gap: 14,
+    maxWidth: 1200,
+    width: '100%',
+    alignSelf: 'center',
+    gap: 16,
   },
   sectionCard: {
     borderRadius: 20,
     borderWidth: 1,
     padding: 16,
-    shadowColor: '#000',
-    shadowOpacity: 0.04,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 3 },
   },
   sectionTitle: {
     fontSize: 17,
@@ -660,10 +785,6 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     borderWidth: 1,
     padding: 16,
-    shadowColor: '#000',
-    shadowOpacity: 0.04,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 3 },
   },
   assistantHeader: {
     flexDirection: 'row',
@@ -698,31 +819,5 @@ const styles = StyleSheet.create({
     color: '#1D4ED8',
     fontWeight: '800',
     fontSize: 14,
-  },
-  highTempAlertBanner: {
-    borderRadius: 16,
-    borderWidth: 1.5,
-    padding: 14,
-    marginBottom: 16,
-    shadowColor: '#EF4444',
-    shadowOpacity: 0.12,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 3 },
-    elevation: 3,
-  },
-  highTempHeaderRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 6,
-  },
-  highTempTitle: {
-    fontSize: 14,
-    fontWeight: '900',
-    letterSpacing: 0.3,
-  },
-  highTempBody: {
-    fontSize: 13,
-    lineHeight: 19,
-    fontWeight: '500',
   },
 });

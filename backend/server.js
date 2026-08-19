@@ -18,17 +18,32 @@ Identity & Persona Rules:
 - Never identify as "Universal AI Assistant".
 - Never output rigid template headers like "Knowledge Guide", "Key Concept & Overview", "Fundamental Principles", or "Recommended Actions".
 
+Terminology & Accuracy Rules:
+- In programming questions:
+  * "OOP" means Object-Oriented Programming.
+  * "OOPs" / "oops" refers to Object-Oriented Programming concepts.
+  * "oops concept in Java" MUST be answered strictly as Object-Oriented Programming concepts in Java: Encapsulation, Inheritance, Polymorphism, Abstraction.
+  * NEVER claim that "Oops" is a Java keyword, exception concept, or "Oh No!" concept.
+- Never invent programming keywords or technical concepts.
+
 Response Length & Formatting Rules:
 - For simple questions or definitions, answer concisely (80–150 words). Do not write long essays.
 - Do not repeat the user's question or end every response with repetitive questions.
 - For disaster & emergency safety questions, prioritize clear, practical action steps without long scientific background unless asked.
-- For technical & general questions, give a direct definition, brief explanation, and short code snippet if relevant.
 - Do not generate long essays unless the user explicitly requests "explain in detail" or "detailed explanation".
 
 Weather Context Rules:
 - Never invent or hallucinate weather conditions, temperatures, rainfall, wind speeds, or emergency alerts.
 - If current weather telemetry is supplied in the context, use it accurately when answering weather or outdoor safety questions.
 - If current weather data is unavailable, state clearly: "I don't have current weather data available right now."`;
+
+function normalizeIntent(text) {
+  if (!text || typeof text !== 'string') return '';
+  let normalized = text.trim();
+  normalized = normalized.replace(/\boops\s+concepts?\b/gi, 'OOP concepts');
+  normalized = normalized.replace(/\boops\b/gi, 'OOP');
+  return normalized;
+}
 
 function isWeatherRelevant(text) {
   if (!text || typeof text !== 'string') return false;
@@ -68,16 +83,14 @@ app.get('/api/health', (req, res) => {
   });
 });
 
-// Optimized Chat endpoint with precise stage performance timing & request IDs
+// Optimized Chat endpoint with intent normalization, precise stage timing, & Tokens/sec metrics
 app.post('/api/chat', async (req, res) => {
   const reqStart = Date.now();
   const requestId = 'req_' + Math.random().toString(36).substring(2, 9);
   const { message, currentWeather, activeAlerts, conversationHistory = [] } = req.body || {};
 
   console.log(`\n[PERF ${requestId}] Request received: ${new Date().toISOString()}`);
-  console.log(`[PERF ${requestId}] Message: "${message ? message.trim() : ''}"`);
-  console.log(`[PERF ${requestId}] Ollama Base URL: ${OLLAMA_BASE_URL}`);
-  console.log(`[PERF ${requestId}] Ollama Model: ${OLLAMA_MODEL}`);
+  console.log(`[PERF ${requestId}] Original Message: "${message ? message.trim() : ''}"`);
 
   if (!message || typeof message !== 'string' || !message.trim()) {
     console.log(`[PERF ${requestId}] Rejected empty message`);
@@ -89,7 +102,12 @@ app.post('/api/chat', async (req, res) => {
     });
   }
 
-  const shouldIncludeWeather = isWeatherRelevant(message);
+  const queryToOllama = normalizeIntent(message);
+  console.log(`[PERF ${requestId}] Normalized Query: "${queryToOllama}"`);
+  console.log(`[PERF ${requestId}] Ollama Base URL: ${OLLAMA_BASE_URL}`);
+  console.log(`[PERF ${requestId}] Ollama Model: ${OLLAMA_MODEL}`);
+
+  const shouldIncludeWeather = isWeatherRelevant(queryToOllama);
   let contextSnippet = '';
 
   if (shouldIncludeWeather && currentWeather) {
@@ -127,11 +145,11 @@ app.post('/api/chat', async (req, res) => {
   const messagesPayload = [
     { role: 'system', content: fullSystemContent },
     ...historyMessages,
-    { role: 'user', content: message.trim() },
+    { role: 'user', content: queryToOllama },
   ];
 
-  const isDetailed = message.toLowerCase().includes('in detail') || message.toLowerCase().includes('explain in detail');
-  const numPredict = isDetailed ? 500 : 220; // Constrain generation length to prevent 50-second generation bottlenecks
+  const isDetailed = queryToOllama.toLowerCase().includes('in detail') || queryToOllama.toLowerCase().includes('explain in detail');
+  const numPredict = isDetailed ? 500 : 200; // Constrain token length to prevent 50s generation overhead on CPU
 
   console.log(`[PERF ${requestId}] Prompt size: ${fullSystemContent.length} chars (num_predict=${numPredict})`);
   console.log(`[PERF ${requestId}] Ollama request started`);
@@ -192,7 +210,7 @@ app.post('/api/chat', async (req, res) => {
           if (token) {
             if (!firstTokenReceived) {
               firstTokenReceived = true;
-              console.log(`[PERF ${requestId}] First Ollama token received: ${Date.now() - ollamaReqStart} ms`);
+              console.log(`[PERF ${requestId}] First token received: ${Date.now() - ollamaReqStart} ms`);
             }
             totalChars += token.length;
             res.write(token);
@@ -200,7 +218,7 @@ app.post('/api/chat', async (req, res) => {
         } catch (e) {
           if (!firstTokenReceived) {
             firstTokenReceived = true;
-            console.log(`[PERF ${requestId}] First Ollama token received: ${Date.now() - ollamaReqStart} ms`);
+            console.log(`[PERF ${requestId}] First token received: ${Date.now() - ollamaReqStart} ms`);
           }
           totalChars += line.length;
           res.write(line);
@@ -209,9 +227,14 @@ app.post('/api/chat', async (req, res) => {
     }
 
     const generationTime = Date.now() - ollamaReqStart;
+    const generationSec = generationTime / 1000;
+    const approxTokens = Math.round(totalChars / 4);
+    const tokensSec = generationSec > 0 ? (approxTokens / generationSec).toFixed(1) : '0';
     const totalTime = Date.now() - reqStart;
-    console.log(`[PERF ${requestId}] Ollama stream completed: ${generationTime} ms (${totalChars} chars)`);
-    console.log(`[PERF ${requestId}] Backend response completed: ${totalTime} ms`);
+
+    console.log(`[PERF ${requestId}] Ollama completed: ${generationTime} ms`);
+    console.log(`[PERF ${requestId}] Total tokens (approx): ${approxTokens}`);
+    console.log(`[PERF ${requestId}] Tokens/sec: ${tokensSec} tokens/s`);
     console.log(`[PERF ${requestId}] Total request time: ${totalTime} ms\n`);
 
     res.end();

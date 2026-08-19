@@ -389,65 +389,76 @@ export default function AlertScreen({ searchQuery = '' }) {
           ) : null}
         </View>
 
-        {/* Hazard Advisories Section Header */}
-        <View style={styles.alertsList}>
-          <View style={styles.sectionHeaderRow}>
-            <Text style={[styles.alertsSectionTitle, { color: colors.text }]}>
-              Hazard Monitoring Advisories ({visibleAlerts.length})
-            </Text>
-            <View style={[styles.statusSummaryBadge, { backgroundColor: isSevereActive ? '#FEF2F2' : '#F1F5F9' }]}>
-              <View style={[styles.statusDot, { backgroundColor: isSevereActive ? '#EF4444' : '#10B981' }]} />
-              <Text style={[styles.statusSummaryText, { color: isSevereActive ? '#DC2626' : '#059669' }]}>
-                {isSevereActive ? 'ACTIVE HAZARD' : '0 ACTIVE ALERTS'}
+          {/* Hazard Advisories Section Header */}
+          <View style={styles.alertsList}>
+            <View style={styles.sectionHeaderRow}>
+              <Text style={[styles.alertsSectionTitle, { color: colors.text }]}>
+                Hazard Monitoring Advisories ({visibleAlerts.length})
               </Text>
+              {(() => {
+                const totalActiveCount = alerts.filter(
+                  (a) => a.active === true || a.status === 'active' || a.id === 'high-temp-alert-25' || isSevereActive
+                ).length;
+                const hasActive = totalActiveCount > 0;
+                return (
+                  <View style={[styles.statusSummaryBadge, { backgroundColor: hasActive ? '#FEF2F2' : '#F1F5F9' }]}>
+                    <View style={[styles.statusDot, { backgroundColor: hasActive ? '#EF4444' : '#10B981' }]} />
+                    <Text style={[styles.statusSummaryText, { color: hasActive ? '#DC2626' : '#059669' }]}>
+                      {hasActive ? `${totalActiveCount} ACTIVE ALERT${totalActiveCount > 1 ? 'S' : ''}` : '0 ACTIVE ALERTS'}
+                    </Text>
+                  </View>
+                );
+              })()}
             </View>
+
+            {/* Hazard Cards with Stacked Mobile Layout */}
+            {visibleAlerts.map((alert) => {
+              const isCardActive =
+                alert.active === true || alert.status === 'active' || alert.id === 'high-temp-alert-25' || isSevereActive;
+              const sevStyle = getSeverityStyle(alert.severity, isCardActive);
+
+              return (
+                <View
+                  key={alert.id}
+                  style={[
+                    styles.card,
+                    { backgroundColor: colors.card, borderColor: colors.border, borderLeftColor: sevStyle.border },
+                  ]}
+                >
+                  <View style={styles.cardTopRow}>
+                    <View style={styles.titleWrap}>
+                      <Ionicons name={alert.icon || 'warning'} size={18} color={sevStyle.text} style={{ marginRight: 6 }} />
+                      <Text style={[styles.alertTitle, { color: colors.text }]} numberOfLines={2}>
+                        {alert.title}
+                      </Text>
+                    </View>
+                    <View style={[styles.badge, { backgroundColor: sevStyle.badgeBg }]}>
+                      <Text style={styles.badgeText}>{isCardActive ? (alert.severity || 'ACTIVE') : 'INACTIVE'}</Text>
+                    </View>
+                  </View>
+
+                  <Text style={[styles.alertMessage, { color: colors.text }]}>{alert.message}</Text>
+
+                  {/* Mobile Responsive Card Footer - Vertical Stacking on Mobile */}
+                  <View style={[styles.cardFooter, isMobile && styles.cardFooterMobile]}>
+                    <View style={[styles.metaLocationWrap, isMobile && styles.metaLocationWrapMobile]}>
+                      <Ionicons name="location-outline" size={14} color={colors.subtext} style={{ marginRight: 4 }} />
+                      <Text style={[styles.metaLocationText, { color: colors.subtext }]} numberOfLines={1} ellipsisMode="tail">
+                        {(alert.location || villageName).replace('Mevalurkuppam', 'Thandalam').replace('22H8+654, ', '')}
+                      </Text>
+                    </View>
+
+                    <View style={styles.metaStatusWrap}>
+                      <View style={[styles.smallStatusDot, { backgroundColor: isCardActive ? '#EF4444' : '#64748B' }]} />
+                      <Text style={[styles.metaStatusText, { color: isCardActive ? colors.text : colors.subtext }]}>
+                        {isCardActive ? alert.timestamp || 'Active Alert' : 'Status: Inactive • Standby'}
+                      </Text>
+                    </View>
+                  </View>
+                </View>
+              );
+            })}
           </View>
-
-          {/* Hazard Cards with Stacked Mobile Layout */}
-          {visibleAlerts.map((alert) => {
-            const sevStyle = getSeverityStyle(alert.severity, isSevereActive);
-            return (
-              <View
-                key={alert.id}
-                style={[
-                  styles.card,
-                  { backgroundColor: colors.card, borderColor: colors.border, borderLeftColor: sevStyle.border },
-                ]}
-              >
-                <View style={styles.cardTopRow}>
-                  <View style={styles.titleWrap}>
-                    <Ionicons name={alert.icon || 'warning'} size={18} color={sevStyle.text} style={{ marginRight: 6 }} />
-                    <Text style={[styles.alertTitle, { color: colors.text }]} numberOfLines={2}>
-                      {alert.title}
-                    </Text>
-                  </View>
-                  <View style={[styles.badge, { backgroundColor: sevStyle.badgeBg }]}>
-                    <Text style={styles.badgeText}>{isSevereActive ? alert.severity : 'INACTIVE'}</Text>
-                  </View>
-                </View>
-
-                <Text style={[styles.alertMessage, { color: colors.text }]}>{alert.message}</Text>
-
-                {/* Mobile Responsive Card Footer - Vertical Stacking on Mobile */}
-                <View style={[styles.cardFooter, isMobile && styles.cardFooterMobile]}>
-                  <View style={[styles.metaLocationWrap, isMobile && styles.metaLocationWrapMobile]}>
-                    <Ionicons name="location-outline" size={14} color={colors.subtext} style={{ marginRight: 4 }} />
-                    <Text style={[styles.metaLocationText, { color: colors.subtext }]} numberOfLines={1} ellipsisMode="tail">
-                      {(alert.location || villageName).replace('Mevalurkuppam', 'Thandalam').replace('22H8+654, ', '')}
-                    </Text>
-                  </View>
-
-                  <View style={styles.metaStatusWrap}>
-                    <View style={[styles.smallStatusDot, { backgroundColor: isSevereActive ? '#EF4444' : '#64748B' }]} />
-                    <Text style={[styles.metaStatusText, { color: colors.subtext }]}>
-                      {isSevereActive ? alert.timestamp : 'Status: Inactive • Standby'}
-                    </Text>
-                  </View>
-                </View>
-              </View>
-            );
-          })}
-        </View>
       </View>
     </ScrollView>
   );

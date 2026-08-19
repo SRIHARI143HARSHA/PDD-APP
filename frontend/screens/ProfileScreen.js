@@ -60,8 +60,8 @@ export default function ProfileScreen({ navigation, realNavigation }) {
         const savedQuizzes = window.localStorage.getItem('disaster_app_quiz_progress');
         if (savedQuizzes) {
           const map = JSON.parse(savedQuizzes);
-          const attemptedCount = Object.values(map).filter((q) => q && q.attempted).length;
-          setQuizzesStat(`${attemptedCount}/5`);
+          const completedCount = Object.values(map).filter((q) => q && q.completed === true && typeof q.latestScore === 'number').length;
+          setQuizzesStat(`${completedCount}/6`);
 
           let maxBest = 0;
           let hasAttempt = false;

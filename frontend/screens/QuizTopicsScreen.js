@@ -111,7 +111,9 @@ export default function QuizTopicsScreen({ navigation, searchQuery = '' }) {
     loadQuizProgress();
   }, [loadQuizProgress]);
 
-  const attemptedQuizzes = quizList.filter((q) => quizStats[q.topicKey]?.attempted || quizStats[q.topicKey]?.completed).length;
+  const attemptedQuizzes = quizList.filter(
+    (q) => quizStats[q.topicKey]?.completed === true && typeof quizStats[q.topicKey]?.latestScore === 'number'
+  ).length;
   const totalQuizzes = quizList.length;
 
   const attemptedScores = quizList
@@ -220,7 +222,7 @@ export default function QuizTopicsScreen({ navigation, searchQuery = '' }) {
         >
           {visibleQuizzes.map((quiz) => {
             const stat = quizStats[quiz.topicKey] || { attempted: false, completed: false, attempts: 0 };
-            const isDone = stat.attempted || stat.completed;
+            const isDone = stat.completed === true && typeof stat.latestScore === 'number';
             const questionsCount = courseData[quiz.topicKey]?.quizQuestions?.length || quiz.questions;
             const correctNum = typeof stat.latestScore === 'number' ? Math.round((stat.latestScore / 100) * questionsCount) : 0;
 

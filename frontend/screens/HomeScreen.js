@@ -69,10 +69,11 @@ export default function HomeScreen({ navigation }) {
       const savedQuizzes = await getItem('disaster_app_quiz_progress');
       if (savedQuizzes) {
         const quizMap = JSON.parse(savedQuizzes);
-        const scores = Object.values(quizMap)
-          .map((q) => (q && typeof q.bestScore === 'number' ? q.bestScore : null))
-          .filter((s) => typeof s === 'number');
-        if (scores.length > 0) {
+        const completedQuizzes = Object.values(quizMap).filter(
+          (q) => q && q.completed === true && typeof q.bestScore === 'number'
+        );
+        if (completedQuizzes.length > 0) {
+          const scores = completedQuizzes.map((q) => q.bestScore);
           quizPercent = Math.round(scores.reduce((a, b) => a + b, 0) / scores.length);
         }
       }
@@ -90,8 +91,10 @@ export default function HomeScreen({ navigation }) {
       const saved = await getItem('disaster_app_quiz_progress');
       if (saved) {
         const map = JSON.parse(saved);
-        const attemptedCount = Object.values(map).filter((q) => q?.attempted || q?.completed).length;
-        setQuizzesCompleted(attemptedCount);
+        const completedCount = Object.values(map).filter(
+          (q) => q && q.completed === true && typeof q.latestScore === 'number'
+        ).length;
+        setQuizzesCompleted(completedCount);
       } else {
         setQuizzesCompleted(0);
       }

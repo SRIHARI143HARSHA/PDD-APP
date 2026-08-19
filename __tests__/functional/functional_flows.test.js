@@ -66,6 +66,20 @@ describe('Functional Workflows - Disaster Safety App', () => {
       expect(result.percentage).toBe(25);
       expect(result.passed).toBe(false);
     });
+
+    it('should count only fully completed quizzes towards completion statistics', () => {
+      const mockQuizProgress = {
+        'Flood Safety': { attempted: true, completed: true, latestScore: 80, bestScore: 90 },
+        'Earthquake Safety': { attempted: true, completed: false, latestScore: null },
+        'Fire Safety': { attempted: true, completed: true, latestScore: 100, bestScore: 100 },
+      };
+
+      const completedCount = Object.values(mockQuizProgress).filter(
+        (q) => q && q.completed === true && typeof q.latestScore === 'number'
+      ).length;
+
+      expect(completedCount).toBe(2);
+    });
   });
 
   describe('FUNC-004: Emergency SOS Alert Dispatch Flow', () => {

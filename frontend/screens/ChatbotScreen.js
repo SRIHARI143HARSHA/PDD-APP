@@ -1,5 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
-import { useCallback, useContext, useEffect, useRef, useState } from 'react';
+import * as Clipboard from 'expo-clipboard';
+import React, { useCallback, useContext, useEffect, useRef, useState } from 'react';
 import {
     ActivityIndicator,
     FlatList,
@@ -23,6 +24,181 @@ const quickQuestions = [
   { icon: 'water-outline', text: 'What should I do during a flood?', color: '#2563EB' },
 ];
 
+/**
+ * Render Markdown content cleanly (Headings, Bold, Bullet points, Code blocks).
+ */
+const SimpleMarkdownRenderer = React.memo(({ content, colors, isDark }) => {
+  if (!content) return null;
+
+  const lines = content.split('\n');
+  const elements = [];
+  let inCodeBlock = false;
+  let codeBlockBuffer = [];
+
+  lines.forEach((line, index) => {
+    // Code block toggle (```)
+    if (line.trim().startsWith('```')) {
+      if (inCodeBlock) {
+        // End code block
+        elements.push(
+          <View
+            key={`code-${index}`}
+            style={[
+              styles.codeBlockContainer,
+              { backgroundColor: isDark ? '#090D16' : '#F1F5F9', borderColor: colors.border },
+            ]}
+          >
+            <Text style={[styles.codeBlockText, { color: isDark ? '#38BDF8' : '#0284C7' }]}>
+              {codeBlockBuffer.join('\n')}
+            </Text>
+          </View>
+        );
+        codeBlockBuffer = [];
+        inCodeBlock = false;
+      } else {
+        // Start code block
+        inCodeBlock = true;
+      }
+      return;
+    }
+
+    if (inCodeBlock) {
+      codeBlockBuffer.push(line);
+      return;
+    }
+
+    // Headings
+    if (line.startsWith('# ')) {
+      elements.push(
+        <Text key={`h1-${index}`} style={[styles.heading1, { color: colors.text }]}>
+          {line.replace('# ', '')}
+        </Text>
+      );
+      return;
+    }
+    if (line.startsWith('## ') || line.startsWith('### ')) {
+      elements.push(
+        <Text key={`h2-${index}`} style={[styles.heading2, { color: colors.text }]}>
+          {line.replace(/###?\s/, '')}
+        </Text>
+      );
+      return;
+    }
+
+    // Bullet points
+    if (line.trim().startsWith('- ') || line.trim().startsWith('* ')) {
+      const bulletText = line.trim().replace(/^[-*]\s/, '');
+      elements.push(
+        <View key={`bullet-${index}`} style={styles.bulletRow}>
+          <Text style={[styles.bulletDot, { color: colors.subtext }]}>•</Text>
+          <Text style={[styles.bulletText, { color: colors.text }]}>
+            {renderBoldFormattedText(bulletText)}
+          </Text>
+        </View>
+      );
+      return;
+    }
+
+    // Standard Paragraph
+    if (line.trim().length > 0) {
+      elements.push(
+        <Text key={`p-${index}`} style={[styles.paragraph, { color: colors.text }]}>
+          {renderBoldFormattedText(line)}
+        </Text>
+      );
+    }
+  });
+
+  return <View style={styles.markdownWrapper}>{elements}</View>;
+});
+
+/**
+ * Format **bold** inline text.
+ */
+function renderBoldFormattedText(text) {
+  const parts = text.split(/(\*\*.*?\*\*)/g);
+  return parts.map((part, i) => {
+    if (part.startsWith('**') && part.endsWith('**')) {
+      return (
+        <Text key={i} style={{ fontWeight: '800' }}>
+          {part.slice(2, -2)}
+        </Text>
+      );
+    }
+    return part;
+  });
+}
+
+/**
+ * Memoized Chat Message Item component to prevent unnecessary re-rendering.
+ */
+const ChatMessageItem = React.memo(({ item, colors, isDark, copiedId, onCopy, onRegenerate }) => {
+  const isUser = item.sender === 'user';
+  const isCopied = copiedId === item.id;
+
+  return (
+    <View style={[styles.messageRow, isUser ? styles.userRow : styles.botRow]}>
+      {!isUser && (
+        <View style={styles.botAvatar}>
+          <Ionicons name="hardware-chip-outline" size={18} color="#FFFFFF" />
+        </View>
+      )}
+      <View
+        style={[
+          styles.bubble,
+          isUser
+            ? { backgroundColor: colors.userBubble }
+            : [styles.botBubbleShadow, { backgroundColor: colors.botBubble, borderColor: colors.border }],
+        ]}
+      >
+        {isUser ? (
+          <Text style={[styles.messageText, { color: colors.userText }]}>{item.text}</Text>
+        ) : (
+          <View>
+            <SimpleMarkdownRenderer content={item.text} colors={colors} isDark={isDark} />
+
+            {/* Per-Message Action Bar (Copy & Regenerate) shown after completion */}
+            {!item.isStreaming && item.text && (
+              <View style={[styles.actionsRow, { borderTopColor: colors.border }]}>
+                <TouchableOpacity
+                  style={styles.actionBtn}
+                  onPress={() => onCopy(item.id, item.text)}
+                  activeOpacity={0.7}
+                >
+                  <Ionicons
+                    name={isCopied ? 'checkmark-circle' : 'copy-outline'}
+                    size={14}
+                    color={isCopied ? '#10B981' : colors.subtext}
+                  />
+                  <Text
+                    style={[
+                      styles.actionBtnText,
+                      { color: isCopied ? '#10B981' : colors.subtext, fontWeight: isCopied ? '800' : '600' },
+                    ]}
+                  >
+                    {isCopied ? '✓ Copied' : '📋 Copy'}
+                  </Text>
+                </TouchableOpacity>
+
+                {onRegenerate && (
+                  <TouchableOpacity
+                    style={styles.actionBtn}
+                    onPress={() => onRegenerate()}
+                    activeOpacity={0.7}
+                  >
+                    <Ionicons name="refresh-outline" size={14} color={colors.subtext} />
+                    <Text style={[styles.actionBtnText, { color: colors.subtext }]}>🔄 Regenerate</Text>
+                  </TouchableOpacity>
+                )}
+              </View>
+            )}
+          </View>
+        )}
+      </View>
+    </View>
+  );
+});
+
 export default function ChatbotScreen() {
   const theme = useContext(ThemeContext);
   const isDark = theme?.dark ?? false;
@@ -31,10 +207,15 @@ export default function ChatbotScreen() {
   const [loading, setLoading] = useState(false);
   const [dots, setDots] = useState('●');
   const [chat, setChat] = useState([]);
+  const [copiedId, setCopiedId] = useState(null);
   const [unavailableError, setUnavailableError] = useState(null);
   const [currentWeather, setCurrentWeather] = useState(null);
   const [activeAlerts, setActiveAlerts] = useState([]);
+
   const flatListRef = useRef(null);
+  const pendingTextRef = useRef('');
+  const batchTimerRef = useRef(null);
+  const lastUserQueryRef = useRef('');
 
   // Fetch real-time weather & alerts context for the chatbot
   const fetchWeatherContext = useCallback(async () => {
@@ -70,7 +251,7 @@ export default function ChatbotScreen() {
     fetchWeatherContext();
   }, [fetchWeatherContext]);
 
-  // Animate dots during analyzing state
+  // Animate loading dots
   useEffect(() => {
     let interval;
     if (loading) {
@@ -83,11 +264,25 @@ export default function ChatbotScreen() {
     return () => clearInterval(interval);
   }, [loading]);
 
+  const handleCopy = async (msgId, rawText) => {
+    try {
+      if (Clipboard && typeof Clipboard.setStringAsync === 'function') {
+        await Clipboard.setStringAsync(rawText);
+      } else if (typeof navigator !== 'undefined' && navigator.clipboard) {
+        await navigator.clipboard.writeText(rawText);
+      }
+      setCopiedId(msgId);
+      setTimeout(() => setCopiedId(null), 1800);
+    } catch (e) {}
+  };
+
   const handleSend = async (textToSend) => {
     const query = (textToSend || message).trim();
     if (!query || loading) return;
 
+    lastUserQueryRef.current = query;
     setUnavailableError(null);
+
     const userMsg = {
       id: Date.now().toString(),
       sender: 'user',
@@ -103,6 +298,13 @@ export default function ChatbotScreen() {
 
     const botMsgId = (Date.now() + 1).toString();
     let hasReceivedFirstToken = false;
+    pendingTextRef.current = '';
+
+    // Clear any previous batch timer
+    if (batchTimerRef.current) {
+      clearInterval(batchTimerRef.current);
+      batchTimerRef.current = null;
+    }
 
     try {
       const res = await askChatbot(
@@ -113,7 +315,9 @@ export default function ChatbotScreen() {
           conversationHistory: updatedChat.slice(-6),
         },
         (chunkToken, fullTextSoFar) => {
-          // On first streaming token: hide Analyzing indicator & add bot message to chat
+          pendingTextRef.current = fullTextSoFar;
+
+          // On first streaming token: hide Analyzing indicator & add bot message
           if (!hasReceivedFirstToken) {
             hasReceivedFirstToken = true;
             setLoading(false);
@@ -124,21 +328,32 @@ export default function ChatbotScreen() {
                 id: botMsgId,
                 sender: 'bot',
                 text: fullTextSoFar,
+                isStreaming: true,
               },
             ]);
-          } else {
-            // Update bot message text progressively in real time
-            setChat((prev) =>
-              prev.map((msg) => (msg.id === botMsgId ? { ...msg, text: fullTextSoFar } : msg))
-            );
+
+            // Start 70ms buffered rendering loop
+            batchTimerRef.current = setInterval(() => {
+              const currentText = pendingTextRef.current;
+              setChat((prev) =>
+                prev.map((msg) => (msg.id === botMsgId ? { ...msg, text: currentText } : msg))
+              );
+            }, 70);
           }
         }
       );
 
-      // Final check if stream didn't trigger callback
+      // Stop batch update timer upon completion
+      if (batchTimerRef.current) {
+        clearInterval(batchTimerRef.current);
+        batchTimerRef.current = null;
+      }
+
       const finalReply = typeof res === 'string' ? res : (res && res.response ? res.response : null);
 
       if ((res && res.success) || finalReply) {
+        const textToSet = finalReply || pendingTextRef.current || 'I am ready to assist you.';
+
         if (!hasReceivedFirstToken) {
           setLoading(false);
           setChat((prev) => [
@@ -146,17 +361,35 @@ export default function ChatbotScreen() {
             {
               id: botMsgId,
               sender: 'bot',
-              text: finalReply || 'I am ready to assist you with disaster safety guidelines.',
+              text: textToSet,
+              isStreaming: false,
             },
           ]);
+        } else {
+          // Mark streaming completed for action buttons to render
+          setChat((prev) =>
+            prev.map((msg) =>
+              msg.id === botMsgId ? { ...msg, text: textToSet, isStreaming: false } : msg
+            )
+          );
         }
       } else {
         setLoading(false);
         setUnavailableError((res && res.message) || 'AI assistant is currently unavailable.');
       }
     } catch (e) {
+      if (batchTimerRef.current) {
+        clearInterval(batchTimerRef.current);
+        batchTimerRef.current = null;
+      }
       setLoading(false);
       setUnavailableError('AI assistant is currently unavailable. Please try again.');
+    }
+  };
+
+  const handleRegenerate = () => {
+    if (lastUserQueryRef.current && !loading) {
+      handleSend(lastUserQueryRef.current);
     }
   };
 
@@ -279,34 +512,20 @@ export default function ChatbotScreen() {
             keyExtractor={(item) => item.id}
             contentContainerStyle={styles.chatListContent}
             onContentSizeChange={() => flatListRef.current?.scrollToEnd({ animated: true })}
-            renderItem={({ item }) => {
-              const isUser = item.sender === 'user';
-              return (
-                <View style={[styles.messageRow, isUser ? styles.userRow : styles.botRow]}>
-                  {!isUser && (
-                    <View style={styles.botAvatar}>
-                      <Ionicons name="hardware-chip-outline" size={18} color="#FFFFFF" />
-                    </View>
-                  )}
-                  <View
-                    style={[
-                      styles.bubble,
-                      isUser
-                        ? { backgroundColor: colors.userBubble }
-                        : [styles.botBubbleShadow, { backgroundColor: colors.botBubble, borderColor: colors.border }],
-                    ]}
-                  >
-                    <Text style={[styles.messageText, { color: isUser ? colors.userText : colors.botText }]}>
-                      {item.text}
-                    </Text>
-                  </View>
-                </View>
-              );
-            }}
+            renderItem={({ item }) => (
+              <ChatMessageItem
+                item={item}
+                colors={colors}
+                isDark={isDark}
+                copiedId={copiedId}
+                onCopy={handleCopy}
+                onRegenerate={handleRegenerate}
+              />
+            )}
           />
         )}
 
-        {/* Immediate 🤖 Analyzing... Loading Indicator (zero artificial delay) */}
+        {/* Immediate 🤖 Analyzing... Loading Indicator */}
         {loading && (
           <View style={styles.typingContainer}>
             <View style={styles.botAvatar}>
@@ -319,7 +538,7 @@ export default function ChatbotScreen() {
               </View>
               <View style={styles.typingMessageRow}>
                 <ActivityIndicator size="small" color="#2563EB" style={{ marginRight: 6 }} />
-                <Text style={[styles.typingStatusText, { color: colors.subtext }]}>Generating AI safety advice...</Text>
+                <Text style={[styles.typingStatusText, { color: colors.subtext }]}>Generating AI response...</Text>
               </View>
             </View>
           </View>
@@ -521,7 +740,7 @@ const styles = StyleSheet.create({
     marginBottom: 2,
   },
   bubble: {
-    maxWidth: '82%',
+    maxWidth: '84%',
     padding: 14,
     borderRadius: 18,
   },
@@ -536,6 +755,65 @@ const styles = StyleSheet.create({
   messageText: {
     fontSize: 14,
     lineHeight: 21,
+  },
+  markdownWrapper: {
+    gap: 6,
+  },
+  heading1: {
+    fontSize: 16,
+    fontWeight: '900',
+    marginVertical: 4,
+  },
+  heading2: {
+    fontSize: 14,
+    fontWeight: '800',
+    marginVertical: 3,
+  },
+  paragraph: {
+    fontSize: 14,
+    lineHeight: 21,
+  },
+  bulletRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    marginVertical: 2,
+  },
+  bulletDot: {
+    fontSize: 14,
+    marginRight: 6,
+    lineHeight: 20,
+  },
+  bulletText: {
+    fontSize: 14,
+    flex: 1,
+    lineHeight: 20,
+  },
+  codeBlockContainer: {
+    padding: 10,
+    borderRadius: 10,
+    borderWidth: 1,
+    marginVertical: 6,
+  },
+  codeBlockText: {
+    fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace',
+    fontSize: 12.5,
+    lineHeight: 18,
+  },
+  actionsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 16,
+    marginTop: 10,
+    paddingTop: 8,
+    borderTopWidth: 1,
+  },
+  actionBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  actionBtnText: {
+    fontSize: 12,
   },
   typingContainer: {
     flexDirection: 'row',

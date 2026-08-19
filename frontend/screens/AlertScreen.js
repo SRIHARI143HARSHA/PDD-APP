@@ -175,6 +175,7 @@ export default function AlertScreen({ searchQuery = '' }) {
           });
 
           // Fetch Firestore custom alerts if available
+          let listToDisplay = defaultAlerts;
           try {
             const querySnapshot = await getDocs(collection(db, 'alerts'));
             const customData = [];
@@ -182,9 +183,27 @@ export default function AlertScreen({ searchQuery = '' }) {
               customData.push({ id: doc.id, ...doc.data() });
             });
             if (customData.length > 0) {
-              setAlerts(customData);
+              listToDisplay = customData;
             }
           } catch (err) {}
+
+          const currentTemp = Math.round(cw.temperature);
+          if (currentTemp > 25) {
+            const tempAlert = {
+              id: 'high-temp-alert-25',
+              title: `High Temperature Alert (${currentTemp}°C > 25°C)`,
+              severity: 'Warning',
+              icon: 'flame',
+              location: detectedVillage,
+              message: `Current local temperature is ${currentTemp}°C, exceeding the 25°C safety threshold. Heat advisory in effect. Stay hydrated, avoid prolonged sun exposure, and keep cool.`,
+              timestamp: 'Live Temperature Sensor',
+              status: 'active',
+              active: true,
+            };
+            listToDisplay = [tempAlert, ...listToDisplay.filter((a) => a.id !== 'high-temp-alert-25')];
+          }
+
+          setAlerts(listToDisplay);
         }
       } catch (err) {
         if (isMounted) {

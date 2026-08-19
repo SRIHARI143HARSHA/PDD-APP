@@ -16,11 +16,10 @@ const getApiUrl = () => {
 };
 
 /**
- * Ask Ollama AI Chatbot via Express Backend Bridge.
- * Transmits live weather and active alerts context to Express -> Ollama.
- * Strictly uses Ollama/Express backend. No rule-based offline fallback.
+ * Ask Ollama AI Chatbot via Express Backend Bridge with real-time token streaming.
+ * Accepts an onToken(token, fullText) callback for live UI response streaming.
  */
-export async function askChatbot(question, context = {}) {
+export async function askChatbot(question, context = {}, onToken = null) {
   const query = (question || '').trim();
   if (!query) {
     const errText = 'Message content is required.';
@@ -48,32 +47,61 @@ export async function askChatbot(question, context = {}) {
         currentWeather: currentWeather,
         activeAlerts: activeAlerts,
         conversationHistory: conversationHistory,
+        stream: true,
       }),
     });
 
     clearTimeout(timeoutId);
 
-    if (res.ok) {
-      const data = await res.json();
-      if (data && data.response) {
-        const text = data.response;
-        return Object.assign(String(text), { success: true, response: text });
+    if (!res.ok) {
+      const errData = typeof res.json === 'function' ? await res.json().catch(() => ({})) : {};
+      const userErrMsg = errData.message || 'AI assistant is currently unavailable. Please try again.';
+      return Object.assign(String(userErrMsg), {
+        error: true,
+        code: errData.code || 'API_ERROR',
+        message: userErrMsg,
+        devDetail: errData.devDetail,
+        response: userErrMsg,
+      });
+    }
+
+    // Read HTTP Stream Tokens in Real-Time
+    if (res.body && typeof res.body.getReader === 'function') {
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      let fullText = '';
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        const tokenChunk = decoder.decode(value, { stream: true });
+        if (tokenChunk) {
+          fullText += tokenChunk;
+          if (typeof onToken === 'function') {
+            onToken(tokenChunk, fullText);
+          }
+        }
+      }
+
+      if (fullText.trim()) {
+        return Object.assign(String(fullText), { success: true, response: fullText });
       }
     }
 
-    const errData = await res.json().catch(() => ({}));
-    const userErrMsg = errData.message || 'AI assistant is currently unavailable. Please try again.';
-    if (errData.devDetail) {
-      console.warn('[chatbotService] Dev Error Detail:', errData.devDetail);
+    // Fallback for non-streaming or test mocks
+    let fullText = '';
+    if (typeof res.text === 'function') {
+      fullText = await res.text();
+    } else if (typeof res.json === 'function') {
+      const data = await res.json();
+      fullText = data.response || JSON.stringify(data);
     }
 
-    return Object.assign(String(userErrMsg), {
-      error: true,
-      code: errData.code || 'API_ERROR',
-      message: userErrMsg,
-      devDetail: errData.devDetail,
-      response: userErrMsg,
-    });
+    if (typeof onToken === 'function') {
+      onToken(fullText, fullText);
+    }
+    return Object.assign(String(fullText), { success: true, response: fullText });
   } catch (err) {
     console.error('[chatbotService] Network/Fetch Error:', err.message);
     const userErrMsg = 'AI assistant is currently unavailable. Please try again.';

@@ -11,34 +11,41 @@ app.use(express.json());
 
 const SYSTEM_PROMPT = `You are a Disaster Preparedness AI assistant.
 
-Your purpose is to provide clear, practical and safety-focused disaster preparedness information.
+Keep normal answers concise and direct.
+For simple questions, answer in 2–5 short paragraphs or a few bullet points.
+Do not unnecessarily provide long essays.
+Only provide detailed explanations when the user asks for them.
 
-You can help users understand:
-- weather-related hazards
-- flood safety
-- heavy rain
-- thunderstorms
-- extreme heat
-- cyclones
-- strong winds
-- earthquakes
-- fire safety
-- emergency kits
-- evacuation preparation
+You can help users understand weather-related hazards, flood safety, heavy rain, thunderstorms, extreme heat, cyclones, strong winds, earthquakes, fire safety, emergency kits, and evacuation.
 
-Use simple language.
-
-Do not claim that you can physically detect an emergency unless the application provides actual sensor/API information.
-
+Do not claim that you can physically detect an emergency unless provided by sensor context.
 Do not invent weather conditions.
+If asked about current weather, use the weather information supplied by the application context.`;
 
-If the user asks about current weather, use the weather information supplied by the application rather than guessing.
-
-For serious emergencies, encourage the user to follow instructions from local emergency authorities.
-
-Do not provide dangerous instructions.
-
-Keep answers concise and actionable.`;
+function isWeatherRelevant(text) {
+  if (!text || typeof text !== 'string') return false;
+  const q = text.toLowerCase();
+  return (
+    q.includes('weather') ||
+    q.includes('rain') ||
+    q.includes('temp') ||
+    q.includes('temperature') ||
+    q.includes('wind') ||
+    q.includes('humidity') ||
+    q.includes('sun') ||
+    q.includes('cloud') ||
+    q.includes('hot') ||
+    q.includes('cold') ||
+    q.includes('storm') ||
+    q.includes('flood') ||
+    q.includes('drizzle') ||
+    q.includes('alert') ||
+    q.includes('warning') ||
+    q.includes('cyclone') ||
+    q.includes('lightning') ||
+    q.includes('thunder')
+  );
+}
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {
@@ -50,27 +57,16 @@ app.get('/api/health', (req, res) => {
   });
 });
 
-// Chat endpoint
+// Optimized Chat endpoint with real-time streaming & performance timing
 app.post('/api/chat', async (req, res) => {
-  const { message, currentWeather, activeAlerts, conversationHistory = [] } = req.body || {};
+  const reqStart = Date.now();
+  const { message, currentWeather, activeAlerts, conversationHistory = [], stream = true } = req.body || {};
 
   console.log(`\n[CHAT] ==========================================`);
-  console.log(`[CHAT] Request received`);
+  console.log(`[CHAT] Request started: ${new Date().toISOString()}`);
   console.log(`[CHAT] Message: "${message ? message.trim() : ''}"`);
   console.log(`[CHAT] Ollama URL: ${OLLAMA_BASE_URL}/api/chat`);
   console.log(`[CHAT] Model: ${OLLAMA_MODEL}`);
-
-  if (currentWeather) {
-    console.log(`[CHAT] Weather Context Provided: Temp=${currentWeather.temp}°C, Condition=${currentWeather.condition}, Location=${currentWeather.location || 'Local Area'}`);
-  } else {
-    console.log(`[CHAT] Weather Context: None`);
-  }
-
-  if (Array.isArray(activeAlerts) && activeAlerts.length > 0) {
-    console.log(`[CHAT] Active Alerts Context: ${activeAlerts.length} active alert(s)`);
-  } else {
-    console.log(`[CHAT] Active Alerts Context: No active alerts`);
-  }
 
   if (!message || typeof message !== 'string' || !message.trim()) {
     console.log(`[CHAT] Rejected empty message`);
@@ -82,10 +78,11 @@ app.post('/api/chat', async (req, res) => {
     });
   }
 
-  // Construct system prompt with live application weather & alert context
+  const shouldIncludeWeather = isWeatherRelevant(message);
   let contextSnippet = '';
 
-  if (currentWeather) {
+  if (shouldIncludeWeather && currentWeather) {
+    console.log(`[CHAT] Including Weather Context: Temp=${currentWeather.temp}°C, Condition=${currentWeather.condition}`);
     contextSnippet += `\n\n[Current Weather Telemetry Provided By Application]`;
     contextSnippet += `\nLocation: ${currentWeather.location || 'Local Area'}`;
     contextSnippet += `\nTemperature: ${currentWeather.temp}°C`;
@@ -94,20 +91,21 @@ app.post('/api/chat', async (req, res) => {
     contextSnippet += `\nWind Speed: ${currentWeather.windSpeed} km/h`;
     contextSnippet += `\nRainfall: ${currentWeather.rainfall || 0} mm`;
     contextSnippet += `\nCondition: ${currentWeather.condition || 'Normal'}`;
+  } else {
+    console.log(`[CHAT] Weather Context: Omitted (Not relevant or unavailable)`);
   }
 
-  if (Array.isArray(activeAlerts) && activeAlerts.length > 0) {
+  if (shouldIncludeWeather && Array.isArray(activeAlerts) && activeAlerts.length > 0) {
+    console.log(`[CHAT] Including Active Alerts Context: ${activeAlerts.length} active alert(s)`);
     contextSnippet += `\n\n[Active Weather Alerts Currently Triggered]`;
     activeAlerts.forEach((alert) => {
       contextSnippet += `\n- ${alert.title}: ${alert.message} (Status: Active)`;
     });
-  } else {
-    contextSnippet += `\n\n[Active Weather Alerts]: No active weather alerts. Current conditions are normal.`;
   }
 
   const fullSystemContent = SYSTEM_PROMPT + contextSnippet;
 
-  // Format messages array for Ollama Chat API
+  // Limit conversation history to last 6 messages max for minimum token overhead
   const historyMessages = (Array.isArray(conversationHistory) ? conversationHistory : [])
     .slice(-6)
     .map((msg) => ({
@@ -121,11 +119,12 @@ app.post('/api/chat', async (req, res) => {
     { role: 'user', content: message.trim() },
   ];
 
-  console.log(`[CHAT] Calling Ollama API...`);
+  console.log(`[CHAT] Ollama request started...`);
+  const ollamaReqStart = Date.now();
 
   try {
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 90000); // 90s timeout for local LLM generation
+    const timeoutId = setTimeout(() => controller.abort(), 90000); // 90s timeout
 
     const ollamaResponse = await fetch(`${OLLAMA_BASE_URL}/api/chat`, {
       method: 'POST',
@@ -134,25 +133,16 @@ app.post('/api/chat', async (req, res) => {
       body: JSON.stringify({
         model: OLLAMA_MODEL,
         messages: messagesPayload,
-        stream: false,
+        stream: true,
       }),
     });
 
     clearTimeout(timeoutId);
 
     if (!ollamaResponse.ok) {
-      console.error(`[CHAT] Ollama returned error status: ${ollamaResponse.status}`);
+      console.error(`[CHAT] Ollama returned HTTP error: ${ollamaResponse.status}`);
       console.log(`[CHAT] ==========================================\n`);
-
-      if (ollamaResponse.status === 404) {
-        return res.status(404).json({
-          error: true,
-          code: 'MODEL_UNAVAILABLE',
-          message: `AI assistant is currently unavailable. Please try again.`,
-          devDetail: `Model '${OLLAMA_MODEL}' was not found in Ollama. Run 'ollama pull ${OLLAMA_MODEL}'.`,
-        });
-      }
-      return res.status(500).json({
+      return res.status(ollamaResponse.status).json({
         error: true,
         code: 'OLLAMA_ERROR',
         message: 'AI assistant is currently unavailable. Please try again.',
@@ -160,48 +150,68 @@ app.post('/api/chat', async (req, res) => {
       });
     }
 
-    const data = await ollamaResponse.json();
-    const replyText = data.message?.content || data.response || '';
+    // Handle Streaming Output to Client
+    res.setHeader('Content-Type', 'text/plain; charset=utf-8');
+    res.setHeader('Transfer-Encoding', 'chunked');
 
-    if (!replyText) {
-      console.error(`[CHAT] Received empty response content from Ollama`);
-      console.log(`[CHAT] ==========================================\n`);
-      return res.status(500).json({
-        error: true,
-        code: 'EMPTY_RESPONSE',
-        message: 'AI assistant is currently unavailable. Please try again.',
-        devDetail: 'Ollama response body contained no text content.',
-      });
+    const reader = ollamaResponse.body.getReader();
+    const decoder = new TextDecoder();
+    let firstTokenReceived = false;
+    let totalChars = 0;
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+
+      const chunkText = decoder.decode(value, { stream: true });
+      const lines = chunkText.split('\n');
+
+      for (const line of lines) {
+        if (!line.trim()) continue;
+        try {
+          const parsed = JSON.parse(line);
+          const token = parsed.message?.content || parsed.response || '';
+          if (token) {
+            if (!firstTokenReceived) {
+              firstTokenReceived = true;
+              console.log(`[CHAT] First token received: ${Date.now() - ollamaReqStart} ms`);
+            }
+            totalChars += token.length;
+            res.write(token);
+          }
+        } catch (e) {
+          // If chunk is raw text token
+          if (!firstTokenReceived) {
+            firstTokenReceived = true;
+            console.log(`[CHAT] First token received: ${Date.now() - ollamaReqStart} ms`);
+          }
+          totalChars += line.length;
+          res.write(line);
+        }
+      }
     }
 
-    console.log(`[CHAT] Ollama response received successfully (${replyText.length} characters)`);
+    const totalTime = Date.now() - reqStart;
+    console.log(`[CHAT] Ollama response completed: ${Date.now() - ollamaReqStart} ms (${totalChars} chars)`);
+    console.log(`[CHAT] Total request time: ${totalTime} ms`);
     console.log(`[CHAT] ==========================================\n`);
 
-    return res.json({
-      response: replyText,
-      modelUsed: OLLAMA_MODEL,
-      timestamp: new Date().toISOString(),
-    });
+    res.end();
   } catch (err) {
     console.error(`[CHAT] Ollama connection failed!`);
     console.error(`[CHAT] Error Detail: ${err.message}`);
     console.log(`[CHAT] ==========================================\n`);
 
-    if (err.name === 'AbortError') {
-      return res.status(504).json({
+    if (!res.headersSent) {
+      return res.status(503).json({
         error: true,
-        code: 'TIMEOUT',
+        code: 'OLLAMA_UNAVAILABLE',
         message: 'AI assistant is currently unavailable. Please try again.',
-        devDetail: 'Ollama request timed out after 25 seconds.',
+        devDetail: `Could not connect to Ollama at ${OLLAMA_BASE_URL}: ${err.message}`,
       });
+    } else {
+      res.end();
     }
-
-    return res.status(503).json({
-      error: true,
-      code: 'OLLAMA_UNAVAILABLE',
-      message: 'AI assistant is currently unavailable. Please try again.',
-      devDetail: `Could not connect to Ollama at ${OLLAMA_BASE_URL}: ${err.message}`,
-    });
   }
 });
 

@@ -237,7 +237,7 @@ export default function HomeScreen({ navigation }) {
     computePreparedness();
   }, [quizzesCompleted, coursesCompleted, computePreparedness]);
 
-  const isHighTemp = weatherData && weatherData.temp > 25;
+  const isHighTemp = weatherData && weatherData.temp >= 40;
   const totalActiveAlerts = activeAlertsCount + (isHighTemp ? 1 : 0);
 
   const stats = [
@@ -250,7 +250,7 @@ export default function HomeScreen({ navigation }) {
     {
       label: 'Active Alerts',
       value: `${totalActiveAlerts}`,
-      note: isHighTemp ? '⚠️ High Temp Alert (>25°C)' : 'Stay updated!',
+      note: isHighTemp ? '⚠️ High Temp Alert (≥40°C)' : 'Stay updated!',
     },
     { label: 'Quizzes Completed', value: `${quizzesCompleted}`, note: 'Great job!' },
   ];
@@ -331,7 +331,7 @@ export default function HomeScreen({ navigation }) {
           </LinearGradient>
         </View>
 
-        {/* HIGH TEMPERATURE (>25°C) DASHBOARD ALERT MESSAGE BANNER */}
+        {/* EXTREME HIGH TEMPERATURE (≥40°C) DASHBOARD ALERT MESSAGE BANNER */}
         {isHighTemp && (
           <TouchableOpacity
             style={[
@@ -347,11 +347,11 @@ export default function HomeScreen({ navigation }) {
             <View style={styles.highTempHeaderRow}>
               <Ionicons name="warning" size={22} color="#EF4444" style={{ marginRight: 8 }} />
               <Text style={[styles.highTempTitle, { color: isDark ? '#FCA5A5' : '#991B1B' }]}>
-                🚨 HIGH TEMPERATURE ALERT ({weatherData.temp}°C &gt; 25°C)
+                🚨 HIGH TEMPERATURE ALERT ({weatherData.temp}°C ≥ 40°C)
               </Text>
             </View>
             <Text style={[styles.highTempBody, { color: isDark ? '#FEE2E2' : '#7F1D1D' }]}>
-              Current temperature of <Text style={{ fontWeight: '900' }}>{weatherData.temp}°C</Text> in {villageName} exceeds the safety limit of 25°C. Stay hydrated, avoid direct heat, and keep cool.
+              Current temperature of <Text style={{ fontWeight: '900' }}>{weatherData.temp}°C</Text> in {villageName} reaches extreme heat safety threshold (40°C). Stay hydrated, avoid outdoor exertion, and keep cool.
             </Text>
           </TouchableOpacity>
         )}

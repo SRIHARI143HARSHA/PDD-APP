@@ -188,19 +188,19 @@ export default function AlertScreen({ searchQuery = '' }) {
           } catch (err) {}
 
           const currentTemp = Math.round(cw.temperature);
-          if (currentTemp > 25) {
+          if (currentTemp >= 40) {
             const tempAlert = {
-              id: 'high-temp-alert-25',
-              title: `High Temperature Alert (${currentTemp}°C > 25°C)`,
+              id: 'high-temp-alert-40',
+              title: `High Temperature Alert (${currentTemp}°C ≥ 40°C)`,
               severity: 'Warning',
               icon: 'flame',
               location: detectedVillage,
-              message: `Current local temperature is ${currentTemp}°C, exceeding the 25°C safety threshold. Heat advisory in effect. Stay hydrated, avoid prolonged sun exposure, and keep cool.`,
+              message: `Current local temperature is ${currentTemp}°C, reaching the 40°C extreme heat threshold. Extreme heat advisory in effect. Stay hydrated, avoid outdoor exertion, and stay in cooled environments.`,
               timestamp: 'Live Temperature Sensor',
               status: 'active',
               active: true,
             };
-            listToDisplay = [tempAlert, ...listToDisplay.filter((a) => a.id !== 'high-temp-alert-25')];
+            listToDisplay = [tempAlert, ...listToDisplay.filter((a) => a.id !== 'high-temp-alert-40' && a.id !== 'high-temp-alert-25')];
           }
 
           setAlerts(listToDisplay);
@@ -397,7 +397,7 @@ export default function AlertScreen({ searchQuery = '' }) {
               </Text>
               {(() => {
                 const totalActiveCount = alerts.filter(
-                  (a) => a.active === true || a.status === 'active' || a.id === 'high-temp-alert-25' || isSevereActive
+                  (a) => a.active === true || a.status === 'active' || (a.id && a.id.startsWith('high-temp-alert')) || isSevereActive
                 ).length;
                 const hasActive = totalActiveCount > 0;
                 return (
@@ -414,7 +414,7 @@ export default function AlertScreen({ searchQuery = '' }) {
             {/* Hazard Cards with Stacked Mobile Layout */}
             {visibleAlerts.map((alert) => {
               const isCardActive =
-                alert.active === true || alert.status === 'active' || alert.id === 'high-temp-alert-25' || isSevereActive;
+                alert.active === true || alert.status === 'active' || (alert.id && alert.id.startsWith('high-temp-alert')) || isSevereActive;
               const sevStyle = getSeverityStyle(alert.severity, isCardActive);
 
               return (

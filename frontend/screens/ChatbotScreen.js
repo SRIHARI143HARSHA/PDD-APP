@@ -23,12 +23,63 @@ const quickQuestions = [
   { icon: 'water-outline', text: 'What should I do during a flood?', color: '#2563EB' },
 ];
 
+function getProcessingMessageSequence(query, currentWeather, activeAlerts) {
+  const q = (query || '').toLowerCase();
+  const isWeatherQuery =
+    q.includes('weather') ||
+    q.includes('rain') ||
+    q.includes('temp') ||
+    q.includes('temperature') ||
+    q.includes('wind') ||
+    q.includes('humidity') ||
+    q.includes('sun') ||
+    q.includes('cloud') ||
+    q.includes('hot') ||
+    q.includes('cold') ||
+    q.includes('drizzle') ||
+    q.includes('storm');
+
+  const hasActiveAlerts = Array.isArray(activeAlerts) && activeAlerts.length > 0;
+  const isAlertQuery =
+    hasActiveAlerts ||
+    q.includes('alert') ||
+    q.includes('warning') ||
+    q.includes('alarm') ||
+    q.includes('sos');
+
+  if (isWeatherQuery) {
+    return [
+      'Analyzing your question...',
+      'Checking current weather information...',
+      'Analyzing weather conditions...',
+      'Preparing safety guidance...',
+    ];
+  }
+
+  if (isAlertQuery) {
+    return [
+      'Analyzing your question...',
+      'Checking active alerts & hazard telemetry...',
+      'Analyzing current conditions...',
+      'Preparing safety recommendations...',
+    ];
+  }
+
+  return [
+    'Analyzing your question...',
+    'Checking disaster safety context...',
+    'Preparing a response...',
+  ];
+}
+
 export default function ChatbotScreen() {
   const theme = useContext(ThemeContext);
   const isDark = theme?.dark ?? false;
 
   const [message, setMessage] = useState('');
   const [loading, setLoading] = useState(false);
+  const [processingStatus, setProcessingStatus] = useState('Analyzing your question...');
+  const [dots, setDots] = useState('●');
   const [chat, setChat] = useState([]);
   const [unavailableError, setUnavailableError] = useState(null);
   const [currentWeather, setCurrentWeather] = useState(null);
@@ -85,26 +136,49 @@ export default function ChatbotScreen() {
     setMessage('');
     setLoading(true);
 
+    const messageSequence = getProcessingMessageSequence(query, currentWeather, activeAlerts);
+    setProcessingStatus(messageSequence[0]);
+    setDots('●');
+
+    let msgIdx = 0;
+    const statusInterval = setInterval(() => {
+      msgIdx = (msgIdx + 1) % messageSequence.length;
+      setProcessingStatus(messageSequence[msgIdx]);
+    }, 1100);
+
+    let dotCount = 1;
+    const dotsInterval = setInterval(() => {
+      dotCount = (dotCount % 3) + 1;
+      setDots('● '.repeat(dotCount).trim());
+    }, 400);
+
     try {
-      const res = await askChatbot(query, {
+      const minDelayPromise = new Promise((resolve) => setTimeout(resolve, 3000));
+      const apiPromise = askChatbot(query, {
         currentWeather: currentWeather,
         activeAlerts: activeAlerts,
         conversationHistory: updatedChat.slice(-6),
       });
 
-      if (res.success && res.response) {
+      const [res] = await Promise.all([apiPromise, minDelayPromise]);
+
+      const replyText = typeof res === 'string' ? res : (res && res.response ? res.response : null);
+
+      if ((res && res.success) || replyText) {
         const botMsg = {
           id: (Date.now() + 1).toString(),
           sender: 'bot',
-          text: res.response,
+          text: replyText || 'I am ready to assist you with disaster safety guidelines.',
         };
         setChat((prev) => [...prev, botMsg]);
       } else {
-        setUnavailableError(res.message || 'AI assistant is currently unavailable.');
+        setUnavailableError((res && res.message) || 'AI assistant is currently unavailable.');
       }
     } catch (e) {
       setUnavailableError('AI assistant is currently unavailable.');
     } finally {
+      clearInterval(statusInterval);
+      clearInterval(dotsInterval);
       setLoading(false);
     }
   };
@@ -255,15 +329,21 @@ export default function ChatbotScreen() {
           />
         )}
 
-        {/* Loading Indicator */}
+        {/* Professional Animated AI Processing Indicator */}
         {loading && (
           <View style={styles.typingContainer}>
             <View style={styles.botAvatar}>
               <Ionicons name="hardware-chip-outline" size={18} color="#FFFFFF" />
             </View>
             <View style={[styles.typingBubble, { backgroundColor: colors.botBubble, borderColor: colors.border }]}>
-              <ActivityIndicator size="small" color="#2563EB" />
-              <Text style={[styles.typingText, { color: colors.subtext }]}>Generating AI safety advice...</Text>
+              <View style={styles.typingHeaderRow}>
+                <Text style={styles.typingTitleText}>🤖 Disaster AI is analyzing...</Text>
+                <Text style={styles.animatedDotsText}>{dots}</Text>
+              </View>
+              <View style={styles.typingMessageRow}>
+                <ActivityIndicator size="small" color="#2563EB" style={{ marginRight: 6 }} />
+                <Text style={[styles.typingStatusText, { color: colors.subtext }]}>{processingStatus}</Text>
+              </View>
             </View>
           </View>
         )}
@@ -482,21 +562,46 @@ const styles = StyleSheet.create({
   },
   typingContainer: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     marginVertical: 8,
   },
   typingBubble: {
-    flexDirection: 'row',
-    alignItems: 'center',
     paddingHorizontal: 14,
     paddingVertical: 10,
     borderRadius: 16,
     borderWidth: 1,
-    gap: 8,
+    minWidth: 240,
+    gap: 6,
+    shadowColor: '#2563EB',
+    shadowOpacity: 0.08,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 2,
   },
-  typingText: {
+  typingHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  typingTitleText: {
     fontSize: 12,
-    fontWeight: '700',
+    fontWeight: '800',
+    color: '#2563EB',
+  },
+  animatedDotsText: {
+    fontSize: 12,
+    fontWeight: '900',
+    color: '#2563EB',
+    letterSpacing: 2,
+  },
+  typingMessageRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 2,
+  },
+  typingStatusText: {
+    fontSize: 12,
+    fontWeight: '600',
   },
   composerWrap: {
     flexDirection: 'row',

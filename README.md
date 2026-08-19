@@ -1,63 +1,66 @@
-# Welcome to your Expo app 👋
+# Disaster Preparedness App & Ollama AI Assistant 👋
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+Expo React Native Disaster Preparedness Application with real-time weather alerts, emergency guides, interactive map layers, and a local **Ollama AI Assistant**.
 
-## Get started
+---
 
-1. Install dependencies
+## 🤖 Ollama AI Disaster Chatbot Setup
 
-   ```bash
-   npm install
-   ```
-
-2. Start the app
-
-   ```bash
-   npx expo start
-   ```
-
-Before you start the app, set your Firebase Web API key in the environment:
-
-```bash
-# macOS / Linux
-export FIREBASE_API_KEY="YOUR_REAL_FIREBASE_API_KEY"
-
-# Windows PowerShell
-$env:FIREBASE_API_KEY="YOUR_REAL_FIREBASE_API_KEY"
-
-# Windows cmd.exe
-set FIREBASE_API_KEY=YOUR_REAL_FIREBASE_API_KEY
+### Architecture:
+```
+Expo React Native App
+       ↓ (POST /api/chat via EXPO_PUBLIC_API_URL)
+Node.js / Express Backend (backend/server.js)
+       ↓ (OLLAMA_BASE_URL)
+Local Ollama Server (http://localhost:11434)
+       ↓
+Local LLM (OLLAMA_MODEL e.g. llama3.2)
 ```
 
-In the output, you'll find options to open the app in a
+---
 
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
+### Step-by-Step Execution:
 
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
+#### 1. Download & Start Ollama
+1. Download Ollama from [https://ollama.com](https://ollama.com).
+2. Download your preferred model (default `llama3.2`):
+   ```bash
+   ollama pull llama3.2
+   ```
+3. Run Ollama:
+   ```bash
+   ollama serve
+   ```
 
-## Get a fresh project
-
-When you're ready, run:
-
+#### 2. Start Express Backend Bridge (`backend/`)
 ```bash
-npm run reset-project
+cd backend
+npm install
+npm start
 ```
+The server starts on `http://localhost:5000`.
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+#### 3. Start Expo App (`frontend/`)
+- Configure `EXPO_PUBLIC_API_URL` in `.env`:
+  - Web/Desktop: `EXPO_PUBLIC_API_URL=http://localhost:5000`
+  - Mobile/Physical Phone: `EXPO_PUBLIC_API_URL=http://<YOUR-LAN-IP>:5000`
+- Launch Expo:
+  ```bash
+  npx expo start --web
+  ```
 
-## Learn more
+---
 
-To learn more about developing your project with Expo, look at the following resources:
+## 🧪 Testing the AI Chatbot
+1. Open the **Disaster AI Assistant** tab.
+2. Ask: *"What should I do during heavy rain?"* -> Receives structured safety guidance.
+3. Ask: *"What is the current weather?"* -> Answers using live Open-Meteo telemetry & active alerts passed from the app context.
+4. Stop Ollama to verify the offline status card: `"AI assistant is currently unavailable."` with **Retry** button.
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+---
 
-## Join the community
-
-Join our community of developers creating universal apps.
-
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+## 📁 Repository Structure
+- `frontend/`: Expo React Native screens, components, and navigation.
+- `backend/`: Isolated Node/Express server bridge (`backend/server.js`) connecting to Ollama.
+- `data/`: Disaster course and safety content.
+- `__tests__/`: Automated Jest test suites (10 test suites, 362 tests passing).

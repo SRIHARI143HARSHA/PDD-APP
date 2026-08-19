@@ -1,5 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
-import { useContext, useRef, useState } from 'react';
+import { useCallback, useContext, useEffect, useRef, useState } from 'react';
 import {
     ActivityIndicator,
     FlatList,
@@ -13,12 +13,14 @@ import {
 } from 'react-native';
 import { ThemeContext } from '../context/ThemeContext';
 import { askChatbot } from '../services/chatbotService';
+import { generateWeatherAlerts } from '../utils/weatherAlertEngine';
 
-const suggestedPrompts = [
+const quickQuestions = [
+  { icon: 'rainy-outline', text: 'What should I do during heavy rain?', color: '#0EA5E9' },
+  { icon: 'thunderstorm-outline', text: 'What should I do during a thunderstorm?', color: '#DC2626' },
+  { icon: 'medical-outline', text: 'What should I keep in an emergency kit?', color: '#10B981' },
+  { icon: 'thermometer-outline', text: 'How do I prepare for extreme heat?', color: '#F97316' },
   { icon: 'water-outline', text: 'What should I do during a flood?', color: '#2563EB' },
-  { icon: 'home-outline', text: 'How do I prepare for an earthquake?', color: '#F97316' },
-  { icon: 'flame-outline', text: 'What should I include in a fire escape plan?', color: '#EF4444' },
-  { icon: 'thunderstorm-outline', text: 'How should I prepare for a cyclone?', color: '#0D9488' },
 ];
 
 export default function ChatbotScreen() {
@@ -27,9 +29,90 @@ export default function ChatbotScreen() {
 
   const [message, setMessage] = useState('');
   const [loading, setLoading] = useState(false);
-  const [thinkingText, setThinkingText] = useState('Thinking...');
   const [chat, setChat] = useState([]);
+  const [unavailableError, setUnavailableError] = useState(null);
+  const [currentWeather, setCurrentWeather] = useState(null);
+  const [activeAlerts, setActiveAlerts] = useState([]);
   const flatListRef = useRef(null);
+
+  // Fetch real-time weather & alerts context for the chatbot
+  const fetchWeatherContext = useCallback(async () => {
+    try {
+      const res = await fetch(
+        `https://api.open-meteo.com/v1/forecast?latitude=13.0281&longitude=80.0158&current_weather=true&hourly=relative_humidity_2m,precipitation`
+      );
+      const data = await res.json();
+      if (data && data.current_weather) {
+        const cw = data.current_weather;
+        const currentHour = new Date().getHours();
+        const humidity = data.hourly?.relative_humidity_2m?.[currentHour] || 65;
+        const rainfall = data.hourly?.precipitation?.[currentHour] || 0;
+
+        const wObj = {
+          location: 'Thandalam, Chennai',
+          temp: Math.round(cw.temperature),
+          feelsLike: Math.round(cw.temperature + (humidity > 70 ? 2 : 0)),
+          windSpeed: Math.round(cw.windspeed),
+          humidity: humidity,
+          rainfall: Math.round(rainfall * 10) / 10,
+          condition: cw.weathercode >= 95 ? 'Thunderstorm' : cw.weathercode >= 51 ? 'Rain' : 'Normal',
+          weathercode: cw.weathercode,
+        };
+
+        setCurrentWeather(wObj);
+        setActiveAlerts(generateWeatherAlerts(wObj));
+      }
+    } catch (e) {}
+  }, []);
+
+  useEffect(() => {
+    fetchWeatherContext();
+  }, [fetchWeatherContext]);
+
+  const handleSend = async (textToSend) => {
+    const query = (textToSend || message).trim();
+    if (!query || loading) return;
+
+    setUnavailableError(null);
+    const userMsg = {
+      id: Date.now().toString(),
+      sender: 'user',
+      text: query,
+    };
+
+    const updatedChat = [...chat, userMsg];
+    setChat(updatedChat);
+    setMessage('');
+    setLoading(true);
+
+    try {
+      const res = await askChatbot(query, {
+        currentWeather: currentWeather,
+        activeAlerts: activeAlerts,
+        conversationHistory: updatedChat.slice(-6),
+      });
+
+      if (res.success && res.response) {
+        const botMsg = {
+          id: (Date.now() + 1).toString(),
+          sender: 'bot',
+          text: res.response,
+        };
+        setChat((prev) => [...prev, botMsg]);
+      } else {
+        setUnavailableError(res.message || 'AI assistant is currently unavailable.');
+      }
+    } catch (e) {
+      setUnavailableError('AI assistant is currently unavailable.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const clearChat = () => {
+    setChat([]);
+    setUnavailableError(null);
+  };
 
   const colors = isDark
     ? {
@@ -61,52 +144,6 @@ export default function ChatbotScreen() {
         promptBorder: '#E2E8F0',
       };
 
-  const handleSend = async (textToSend) => {
-    const query = (textToSend || message).trim();
-    if (!query || loading) return;
-
-    const userMsg = {
-      id: Date.now().toString(),
-      sender: 'user',
-      text: query,
-    };
-
-    setChat((prev) => [...prev, userMsg]);
-    setMessage('');
-    setLoading(true);
-
-    // Stage 1 (0.0s - 1.8s): "Thinking..."
-    setThinkingText('Thinking...');
-
-    // Stage 2 (1.8s - 3.6s): "Analyzing..."
-    const timer1 = setTimeout(() => setThinkingText('Analyzing...'), 1800);
-
-    try {
-      // Promise.all enforces realistic 3.6s delay using ONLY two loading words
-      const [reply] = await Promise.all([
-        askChatbot(query),
-        new Promise((resolve) => setTimeout(resolve, 3600)),
-      ]);
-
-      const botMsg = {
-        id: (Date.now() + 1).toString(),
-        sender: 'bot',
-        text: reply || 'I am ready to assist you with disaster preparedness guidelines.',
-      };
-      setChat((prev) => [...prev, botMsg]);
-    } catch (e) {
-      const botMsg = {
-        id: (Date.now() + 1).toString(),
-        sender: 'bot',
-        text: 'Unable to connect to AI assistant. Please check your internet connection and try again.',
-      };
-      setChat((prev) => [...prev, botMsg]);
-    } finally {
-      clearTimeout(timer1);
-      setLoading(false);
-    }
-  };
-
   return (
     <KeyboardAvoidingView
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
@@ -115,17 +152,48 @@ export default function ChatbotScreen() {
       <View style={styles.mainWrapper}>
         {/* Header Title & Subtitle */}
         <View style={styles.headerArea}>
-          <View style={styles.aiBadge}>
-            <Ionicons name="sparkles" size={18} color="#2563EB" />
-            <Text style={styles.aiBadgeText}>AI Safety Assistant</Text>
+          <View style={styles.headerRowTop}>
+            <View style={styles.aiBadge}>
+              <Ionicons name="sparkles" size={16} color="#2563EB" />
+              <Text style={styles.aiBadgeText}>AI Emergency Safety</Text>
+            </View>
+            {chat.length > 0 && (
+              <TouchableOpacity style={styles.clearBtn} onPress={clearChat} activeOpacity={0.8}>
+                <Ionicons name="trash-outline" size={16} color={colors.subtext} />
+                <Text style={[styles.clearBtnText, { color: colors.subtext }]}>Clear</Text>
+              </TouchableOpacity>
+            )}
           </View>
-          <Text style={[styles.title, { color: colors.text }]}>Disaster Preparedness AI</Text>
+          <Text style={[styles.title, { color: colors.text }]}>Disaster AI Assistant</Text>
           <Text style={[styles.subtitle, { color: colors.subtext }]}>
-            Get instant preparedness guidance for floods, earthquakes, fires, cyclones, and tsunamis.
+            Ask me about disaster safety and preparedness.
           </Text>
         </View>
 
-        {/* Empty State / Suggested Prompts */}
+        {/* Unavailable Error Banner with Retry */}
+        {unavailableError && (
+          <View style={[styles.errorCard, { backgroundColor: isDark ? '#450A0A' : '#FEF2F2', borderColor: '#EF4444' }]}>
+            <Ionicons name="alert-circle" size={22} color="#EF4444" style={{ marginRight: 8 }} />
+            <View style={{ flex: 1 }}>
+              <Text style={[styles.errorTitle, { color: isDark ? '#FCA5A5' : '#991B1B' }]}>
+                {unavailableError}
+              </Text>
+              <Text style={[styles.errorSub, { color: isDark ? '#FEE2E2' : '#7F1D1D' }]}>
+                Check that Ollama and the backend server are running.
+              </Text>
+            </View>
+            <TouchableOpacity
+              style={styles.retryBtn}
+              onPress={() => handleSend(chat[chat.length - 1]?.text || 'What should I do during heavy rain?')}
+              activeOpacity={0.85}
+            >
+              <Ionicons name="refresh-outline" size={14} color="#FFFFFF" style={{ marginRight: 4 }} />
+              <Text style={styles.retryBtnText}>Retry</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+
+        {/* Conversation List or Quick Questions Grid */}
         {chat.length === 0 ? (
           <View style={styles.emptyStateContainer}>
             <View style={[styles.emptyIconCircle, { backgroundColor: isDark ? '#0B1C33' : '#EFF6FF' }]}>
@@ -133,11 +201,11 @@ export default function ChatbotScreen() {
             </View>
             <Text style={[styles.emptyStateTitle, { color: colors.text }]}>How can I help you prepare today?</Text>
             <Text style={[styles.emptyStateSub, { color: colors.subtext }]}>
-              Select a suggested topic below or type your question in the box.
+              Select a quick question below or type your safety question.
             </Text>
 
             <View style={styles.promptsGrid}>
-              {suggestedPrompts.map((item, idx) => (
+              {quickQuestions.map((item, idx) => (
                 <TouchableOpacity
                   key={idx}
                   style={[styles.promptCard, { backgroundColor: colors.promptBg, borderColor: colors.promptBorder }]}
@@ -187,7 +255,7 @@ export default function ChatbotScreen() {
           />
         )}
 
-        {/* Loading / Typing State with 3.6s Delay Using Only 2 Words: "Thinking..." & "Analyzing..." */}
+        {/* Loading Indicator */}
         {loading && (
           <View style={styles.typingContainer}>
             <View style={styles.botAvatar}>
@@ -195,15 +263,15 @@ export default function ChatbotScreen() {
             </View>
             <View style={[styles.typingBubble, { backgroundColor: colors.botBubble, borderColor: colors.border }]}>
               <ActivityIndicator size="small" color="#2563EB" />
-              <Text style={[styles.typingText, { color: colors.subtext }]}>{thinkingText}</Text>
+              <Text style={[styles.typingText, { color: colors.subtext }]}>Generating AI safety advice...</Text>
             </View>
           </View>
         )}
 
-        {/* Floating Composer */}
+        {/* Floating Message Input Bar */}
         <View style={[styles.composerWrap, { backgroundColor: colors.inputBg, borderColor: colors.border }]}>
           <TextInput
-            placeholder="Ask about disaster preparedness..."
+            placeholder="Ask about disaster safety & emergency procedures..."
             placeholderTextColor={colors.subtext}
             style={[styles.input, { color: colors.text }]}
             value={message}
@@ -240,7 +308,14 @@ const styles = StyleSheet.create({
   },
   headerArea: {
     alignItems: 'center',
-    marginBottom: 16,
+    marginBottom: 14,
+  },
+  headerRowTop: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    width: '100%',
+    marginBottom: 6,
   },
   aiBadge: {
     flexDirection: 'row',
@@ -249,13 +324,23 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 4,
     borderRadius: 999,
-    marginBottom: 8,
     gap: 6,
   },
   aiBadgeText: {
     color: '#2563EB',
     fontSize: 12,
     fontWeight: '800',
+  },
+  clearBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+  },
+  clearBtnText: {
+    fontSize: 12,
+    fontWeight: '700',
   },
   title: {
     fontSize: 24,
@@ -268,19 +353,49 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     maxWidth: 600,
   },
+  errorCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 12,
+    borderRadius: 14,
+    borderWidth: 1,
+    marginBottom: 12,
+  },
+  errorTitle: {
+    fontSize: 13,
+    fontWeight: '800',
+  },
+  errorSub: {
+    fontSize: 11,
+    marginTop: 1,
+  },
+  retryBtn: {
+    backgroundColor: '#EF4444',
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginLeft: 8,
+  },
+  retryBtnText: {
+    color: '#FFFFFF',
+    fontSize: 12,
+    fontWeight: '800',
+  },
   emptyStateContainer: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 20,
+    paddingVertical: 14,
   },
   emptyIconCircle: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
+    width: 76,
+    height: 76,
+    borderRadius: 38,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 16,
+    marginBottom: 14,
   },
   emptyStateTitle: {
     fontSize: 18,
@@ -290,7 +405,7 @@ const styles = StyleSheet.create({
   },
   emptyStateSub: {
     fontSize: 13,
-    marginBottom: 24,
+    marginBottom: 20,
     textAlign: 'center',
   },
   promptsGrid: {

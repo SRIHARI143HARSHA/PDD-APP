@@ -1,4 +1,4 @@
-export function getConversationalAIResponse(question) {
+function getConversationalAIResponse(question) {
   const rawQ = (question || '').trim();
   const q = rawQ.toLowerCase();
 
@@ -305,7 +305,12 @@ Here is a clear, comprehensive breakdown regarding **"${rawQ}"**:
 ❓ *Feel free to ask any follow-up questions or explore any other topic!*`;
 }
 
-export async function askChatbot(question) {
+async function askChatbot(question) {
   // Pure 100% local, universal offline AI Assistant engine that answers ANY and EVERY question on ANY topic
   return getConversationalAIResponse(question);
 }
+
+module.exports = {
+  getConversationalAIResponse,
+  askChatbot,
+};
